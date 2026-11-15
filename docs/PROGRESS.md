@@ -8,8 +8,8 @@ _Last updated: 15 November 2026._
 |---|---|
 | `npm run typecheck` | clean |
 | `npm run lint` | clean |
-| `npm test` — unit + integration on a real PostgreSQL 16 | **118 passed** (4 files) |
-| `npm run test:e2e` — Playwright against a production build | **22 passed** (desktop + mobile projects) |
+| `npm test` — unit + integration on a real PostgreSQL 16 | **119 passed** (4 files) |
+| `npm run test:e2e` — Playwright against a production build | **23 passed** (desktop + mobile projects) |
 | Accessibility — axe, WCAG 2.1 A/AA, light and dark, 20 screens | no serious or critical violation (one FullCalendar-internal rule excluded, see limitations) |
 | Feed validity | generated `.ics` parsed by an independent RFC 5545 parser (`ical.js`) in tests |
 

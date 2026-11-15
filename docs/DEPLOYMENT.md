@@ -17,11 +17,9 @@ Any managed PostgreSQL works (Supabase, Vercel Postgres, self-hosted). Neon is t
 
 Migrations must go through the direct connection: over the pooler they can fail in ways that do not mention pooling. The scripts in this repository pick `DATABASE_URL_UNPOOLED` automatically when it is set.
 
-Schema migrations run **automatically on every deploy** (`vercel-build` / `build:deploy` run `scripts/migrate.ts` before `next build`). Create the first Super Admin once, from your machine:
+Schema migrations and reference data (categories, built-in rules, template) are applied **automatically on every deploy** (`vercel-build` / `build:deploy`).
 
-```bash
-DATABASE_URL="postgres://…(direct)…" SEED_ADMIN_EMAIL="you@…" SEED_ADMIN_PASSWORD="a-long-password" SEED_ADMIN_NAME="Your Name" npm run db:seed
-```
+**First account:** open the site and go to `/login` — on a brand-new installation it redirects to `/setup`, where you create the first Super Admin. That page works only while the database has no user at all, so do it right after the first successful deploy. (Alternative from a terminal: `SEED_ADMIN_EMAIL=… SEED_ADMIN_PASSWORD=… npm run db:seed`.)
 
 Recommended afterwards: `DATABASE_URL="postgres://…(direct)…" npm run db:public-role -- "<16+ char password>"`, then set the printed value as `DATABASE_URL_PUBLIC`, replacing its hostname with the pooled one.
 

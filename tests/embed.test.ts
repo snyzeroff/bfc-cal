@@ -75,3 +75,17 @@ describe("embed and featured flag on events", () => {
     expect((err as AppError).code).toBe("forbidden");
   });
 });
+
+describe("first-run bootstrap", () => {
+  it("creates the first Super Admin only when there is no user", async () => {
+    const { ensureBaseData } = await import("@/lib/bootstrap");
+    const { sql } = await import("@/db");
+    await resetDb();
+    await sql`delete from users`;
+    expect((await ensureBaseData({ email: "First@Club.fr", password: "a-long-password", name: "First" })).createdAdmin).toBe(true);
+    expect((await ensureBaseData({ email: "second@club.fr", password: "a-long-password", name: "Second" })).createdAdmin).toBe(false);
+    const rows = await sql`select email, role from users`;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ email: "first@club.fr", role: "super_admin" });
+  });
+});

@@ -72,3 +72,8 @@ test.describe("members (no account)", () => {
     await expect(page).toHaveURL(/\/login/);
   });
 });
+
+test("first-time setup is closed once an account exists", async ({ page }) => {
+  await page.goto("/setup");
+  await expect(page).toHaveURL(/\/login/);
+});

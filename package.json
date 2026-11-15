@@ -16,8 +16,8 @@
     "test": "vitest run",
     "test:e2e": "playwright test --trace off",
     "check": "npm run typecheck && npm run lint && npm run test",
-    "build:deploy": "tsx scripts/migrate.ts && next build",
-    "vercel-build": "tsx scripts/migrate.ts && next build"
+    "build:deploy": "tsx scripts/migrate.ts && tsx --conditions=react-server scripts/seed.ts --base-only && next build",
+    "vercel-build": "tsx scripts/migrate.ts && tsx --conditions=react-server scripts/seed.ts --base-only && next build"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

@@ -1,7 +1,10 @@
+import { sql as dsql } from "drizzle-orm";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Logo } from "@/components/logo";
+import { db } from "@/db";
+import { users } from "@/db/schema";
 import { getUser } from "@/lib/auth/session";
 import { getSetting } from "@/lib/settings";
 import { LoginForm } from "./login-form";
@@ -12,6 +15,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const [user, appearance, sp] = await Promise.all([getUser(), getSetting("appearance"), searchParams]);
   const next = sp.next && sp.next.startsWith("/board") ? sp.next : "/board";
   if (user) redirect(next);
+  // Brand-new installation: nobody can sign in yet, so start with the setup page.
+  const [{ n }] = await db.select({ n: dsql<number>`count(*)::int` }).from(users);
+  if (n === 0) redirect("/setup");
   return (
     <main className="grid min-h-dvh lg:grid-cols-[1.05fr_1fr]">
       <section className="relative hidden overflow-hidden bg-brand-deep p-12 text-white lg:flex lg:flex-col lg:justify-between">

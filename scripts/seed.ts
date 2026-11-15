@@ -18,10 +18,17 @@ async function main() {
 
   const email = process.env.SEED_ADMIN_EMAIL;
   const password = process.env.SEED_ADMIN_PASSWORD;
-  if (!email || !password) throw new Error("Set SEED_ADMIN_EMAIL and SEED_ADMIN_PASSWORD first.");
-  if (password.length < 10) throw new Error("SEED_ADMIN_PASSWORD must be at least 10 characters.");
-  const res = await ensureBaseData({ email, password, name: process.env.SEED_ADMIN_NAME ?? "Admin" });
-  console.log(res.createdAdmin ? `✓ Created Super Admin ${email}` : "✓ Reference data present (existing users untouched)");
+  if (process.argv.includes("--base-only") || !email || !password) {
+    // Deploy builds: make sure categories, rules and templates exist. The first
+    // Super Admin is then created from the /setup page.
+    if (!process.argv.includes("--base-only")) console.log("• SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD not set: no admin created (use the /setup page).");
+    await ensureBaseData();
+    console.log("✓ Reference data present");
+  } else {
+    if (password.length < 10) throw new Error("SEED_ADMIN_PASSWORD must be at least 10 characters.");
+    const res = await ensureBaseData({ email, password, name: process.env.SEED_ADMIN_NAME ?? "Admin" });
+    console.log(res.createdAdmin ? `✓ Created Super Admin ${email}` : "✓ Reference data present (existing users untouched)");
+  }
 
   if (process.argv.includes("--demo")) {
     const existing = await db.select().from(s.events).limit(1);

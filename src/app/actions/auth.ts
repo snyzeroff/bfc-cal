@@ -47,3 +47,23 @@ export async function acceptInviteAction(input: { token: string; password: strin
     return { name: row.user.name };
   });
 }
+
+/**
+ * First-run setup: creates the first Super Admin. Only works while the
+ * database has no user at all; afterwards accounts come from invitations.
+ */
+export async function setupAction(input: { name: string; email: string; password: string }) {
+  return run(async () => {
+    const data = z
+      .object({ name: z.string().trim().min(1, "Enter your name").max(80), email: z.string().trim().toLowerCase().email("Enter a valid email").max(200), password: z.string().max(200) })
+      .parse(input);
+    if (data.password.length < MIN_PASSWORD_LENGTH) throw new AppError("invalid", `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`);
+    const { ensureBaseData } = await import("@/lib/bootstrap");
+    const res = await ensureBaseData(data);
+    if (!res.createdAdmin) throw new AppError("forbidden", "This site is already set up. Ask a Super Admin for an invitation.");
+    const [user] = await db.select().from(users).where(eq(users.email, data.email));
+    await audit({ actor: user, action: "user.setup", entityType: "user", entityId: user.id, summary: `${user.name} created the first Super Admin account` });
+    await createSession(user.id);
+    return { name: user.name };
+  });
+}
