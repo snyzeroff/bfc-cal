@@ -25,7 +25,7 @@ export function PublicEventView({ event, compact }: { event: PublicEventJson; co
           </span>
           {state && <span className={cn("rounded-full px-2.5 py-1", state.cls)}>{state.label}</span>}
         </div>
-        <h1 className={cn("mt-4 font-display leading-[1.05] tracking-[-0.01em]", compact ? "text-3xl" : "text-[40px] sm:text-[52px]", cancelled && "text-ink-3 line-through decoration-1")}>{event.title}</h1>
+        <h1 className={cn("mt-4 font-display leading-[1.05]", compact ? "text-3xl tracking-[-0.025em]" : "text-[clamp(2.2rem,5.5vw,3.5rem)] tracking-[-0.035em]", cancelled && "text-ink-3 line-through decoration-1")}>{event.title}</h1>
         {event.speaker && (
           <p className={cn("mt-3 text-ink-2", compact ? "text-sm" : "text-lg")}>
             with <span className="font-medium text-ink">{event.speaker.name}</span>
@@ -36,7 +36,7 @@ export function PublicEventView({ event, compact }: { event: PublicEventJson; co
         )}
       </header>
 
-      <dl className="grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-2">
+      <dl className="grid gap-px overflow-hidden rounded-2xl bg-line shadow-sm ring-1 ring-line sm:grid-cols-2">
         <Fact icon={<CalendarDays />} label="When">
           <span className={cn(cancelled && "line-through")}>{formatRange(new Date(event.start), new Date(event.end), event.allDay)}</span>
           <span className="block text-xs text-ink-3">Paris time</span>
@@ -59,7 +59,7 @@ export function PublicEventView({ event, compact }: { event: PublicEventJson; co
       )}
 
       {event.registrationUrl && !event.embedUrl && !cancelled && event.status !== "completed" && (
-        <a href={event.registrationUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 items-center justify-center gap-2 self-start rounded-lg bg-brand px-5 text-sm font-medium text-on-brand shadow-sm transition-colors hover:bg-brand-deep">
+        <a href={event.registrationUrl} target="_blank" rel="noopener noreferrer" className="press inline-flex h-12 items-center justify-center gap-2 self-start rounded-full bg-brand px-6 text-[15px] font-medium text-on-brand hover:bg-brand-deep">
           Register <ExternalLink className="h-4 w-4" />
         </a>
       )}
@@ -69,7 +69,7 @@ export function PublicEventView({ event, compact }: { event: PublicEventJson; co
       )}
 
       {event.speaker?.bio && (
-        <section className="rounded-xl bg-surface-2 p-5">
+        <section className="rounded-2xl bg-surface p-6 shadow-sm ring-1 ring-line">
           <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">
             <Mic2 className="h-3.5 w-3.5" /> About the speaker
           </h2>

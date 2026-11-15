@@ -41,7 +41,7 @@ export function MembersCalendar({ events, defaultView, weekStartsOn, today }: { 
 
   return (
     <section aria-label="Events">
-      <div className="mb-5 flex flex-wrap items-center gap-2 border-b border-line pb-4">
+      <div className="mb-6 flex flex-wrap items-center gap-2">
         <div className="flex flex-wrap gap-1.5">
           <FilterChip on={!category} onClick={() => setCategory("")}>All</FilterChip>
           {categories.map((c) => (
@@ -64,9 +64,9 @@ export function MembersCalendar({ events, defaultView, weekStartsOn, today }: { 
           ) : (
             <div className="flex flex-col gap-10">
               {groups.map(([month, list]) => (
-                <div key={month} className="grid gap-4 md:grid-cols-[160px_1fr]">
-                  <h2 className="font-display text-2xl leading-none text-ink-3 md:sticky md:top-20 md:self-start">{month}</h2>
-                  <ul className="flex flex-col gap-3">{list.map((e) => <li key={e.id}><EventRow e={e} /></li>)}</ul>
+                <div key={month} className="grid grid-cols-1 gap-4 md:grid-cols-[160px_minmax(0,1fr)]">
+                  <h2 className="font-display text-[22px] leading-none text-ink md:sticky md:top-20 md:self-start">{month}</h2>
+                  <ul className="flex min-w-0 flex-col gap-3">{list.map((e) => <li key={e.id} className="min-w-0"><EventRow e={e} /></li>)}</ul>
                 </div>
               ))}
             </div>
@@ -98,8 +98,8 @@ function EventRow({ e }: { e: PublicEventJson }) {
   const start = new Date(e.start);
   const cancelled = e.status === "cancelled";
   return (
-    <Link href={`/events/${e.id}`} className="group flex gap-4 rounded-2xl border border-line bg-surface p-4 shadow-sm transition-[border-color,box-shadow,transform] hover:-translate-y-px hover:border-line-strong hover:shadow-md sm:gap-5 sm:p-5">
-      <div className="flex w-14 shrink-0 flex-col items-center justify-center rounded-xl bg-surface-2 py-2 text-center">
+    <Link href={`/events/${e.id}`} className="press group flex gap-4 rounded-2xl bg-surface p-4 shadow-sm ring-1 ring-line hover:shadow-md sm:gap-5 sm:p-5">
+      <div className="flex w-[60px] shrink-0 flex-col items-center justify-center rounded-2xl bg-surface-2 py-2.5 text-center">
         <span className="text-[10px] font-semibold uppercase tracking-wider text-brand-ink">{WEEKDAY.format(start)}</span>
         <span className="font-display text-[30px] leading-none">{Number(parisDay(start).slice(8))}</span>
         <span className="text-[10px] uppercase tracking-wider text-ink-3">{MON.format(start)}</span>
@@ -113,7 +113,7 @@ function EventRow({ e }: { e: PublicEventJson }) {
           {cancelled && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-danger">Cancelled</span>}
           {e.status === "postponed" && <span className="rounded-full bg-warn-soft px-2 py-0.5 text-warn">Postponed</span>}
         </p>
-        <h3 className={cn("mt-1 font-display text-[24px] leading-[1.12] group-hover:text-brand-ink", cancelled && "text-ink-3 line-through decoration-1")}>{e.title}</h3>
+        <h3 className={cn("mt-1 font-display text-[21px] leading-[1.15] tracking-[-0.02em]", cancelled && "text-ink-3 line-through decoration-1")}>{e.title}</h3>
         {e.speaker && <p className="mt-1 truncate text-[13px] text-ink-2">with {e.speaker.name}{e.speaker.organization ? ` · ${e.speaker.organization}` : ""}</p>}
         <p className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-3">
           <span className="tabular">{e.allDay ? "All day" : `${formatTime(start)} – ${formatTime(new Date(e.end))}`}</span>

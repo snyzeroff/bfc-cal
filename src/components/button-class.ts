@@ -6,7 +6,7 @@ export type ButtonSize = "sm" | "md" | "lg" | "icon";
 /** Shared by <Button> and by links styled as buttons (usable from server components). */
 export const buttonClass = (variant: ButtonVariant = "secondary", size: ButtonSize = "md") =>
   cn(
-    "inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg font-medium transition-[background,box-shadow,color,transform] duration-150 select-none active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100",
+    "inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-full font-medium transition-[background-color,box-shadow,color,transform] duration-150 select-none active:scale-[0.97] active:duration-100 disabled:opacity-50 disabled:active:scale-100",
     size === "sm" && "h-7 px-2.5 text-xs",
     size === "md" && "h-9 px-3.5 text-[13px]",
     size === "lg" && "h-11 px-5 text-sm",

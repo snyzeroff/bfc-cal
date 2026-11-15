@@ -76,7 +76,7 @@ export function BoardShell({
     <div className="flex min-h-dvh">
       <a href="#board-main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-3 focus:py-2 focus:shadow-lg">Skip to content</a>
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh w-[224px] shrink-0 flex-col border-r border-line bg-surface-2/50 px-3 py-4 lg:flex">
+      <aside className="sticky top-0 hidden h-dvh w-[224px] shrink-0 flex-col border-r border-line bg-surface px-3 py-4 lg:flex">
         <Link href="/board" className="mb-5 flex items-center gap-2.5 rounded-lg px-2 py-1">
           <Logo shortName={shortName} />
           <span className="min-w-0">
@@ -119,7 +119,7 @@ export function BoardShell({
 
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile top bar */}
-        <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b border-line bg-bg/90 px-4 backdrop-blur lg:hidden">
+        <header className="material sticky top-0 z-30 flex h-12 items-center gap-2 px-4 lg:hidden">
           <Logo shortName={shortName} size={24} />
           <span className="flex-1 truncate text-[13px] font-semibold">{orgName}</span>
           <ThemeToggle />
@@ -134,7 +134,7 @@ export function BoardShell({
         <main id="board-main" className="flex-1 px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8">{children}</main>
 
         {/* Mobile bottom navigation */}
-        <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" aria-label="Board">
+        <nav className="material fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="Board">
           {NAV.slice(0, 4).map((n) => (
             <Link key={n.href} href={n.href} aria-current={active(n.href, "exact" in n && n.exact) ? "page" : undefined} className={cn("flex flex-col items-center gap-0.5 py-2 text-[10px] font-medium", active(n.href, "exact" in n && n.exact) ? "text-brand-ink" : "text-ink-3")}>
               <n.icon className="h-5 w-5" />
@@ -170,7 +170,7 @@ function NavLink({ href, active, icon, children, badge, external }: { href: stri
       aria-current={active ? "page" : undefined}
       className={cn(
         "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] font-medium transition-colors [&_svg]:h-4 [&_svg]:w-4",
-        active ? "bg-surface text-ink shadow-sm ring-1 ring-line [&_svg]:text-brand-ink" : "text-ink-2 hover:bg-surface-3/60 hover:text-ink [&_svg]:text-ink-3",
+        active ? "bg-surface-2 text-ink [&_svg]:text-brand-ink" : "text-ink-2 hover:bg-surface-2 hover:text-ink [&_svg]:text-ink-3",
       )}
     >
       {icon}

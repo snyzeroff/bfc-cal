@@ -9,17 +9,17 @@ export default async function PublicLayout({ children }: { children: React.React
   return (
     <div className="flex min-h-dvh flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-3 focus:py-2 focus:shadow-lg">Skip to content</a>
-      <header className="sticky top-0 z-30 border-b border-line bg-bg/85 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-5xl items-center gap-3 px-4 sm:px-6">
+      <header className="material sticky top-0 z-30">
+        <div className="mx-auto flex h-12 max-w-5xl items-center gap-3 px-4 sm:px-6">
           <Link href="/" className="flex min-w-0 items-center gap-2.5">
             <Logo shortName={appearance.shortName} />
             <span className="truncate text-sm font-semibold">{appearance.orgName}</span>
           </Link>
           <nav className="ml-auto flex items-center gap-1 text-[13px] font-medium" aria-label="Main">
-            <Link href="/" className="hidden rounded-lg px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink sm:block">Calendar</Link>
-            <Link href="/subscribe" className="rounded-lg px-3 py-1.5 text-ink-2 hover:bg-surface-2 hover:text-ink">Subscribe</Link>
+            <Link href="/" className="hidden rounded-full px-3 py-1.5 text-ink-2 hover:text-ink sm:block">Calendar</Link>
+            <Link href="/subscribe" className="rounded-full px-3 py-1.5 text-ink-2 hover:text-ink">Subscribe</Link>
             <ThemeToggle />
-            <Link href={user ? "/board" : "/login"} className="ml-1 rounded-lg border border-line-strong px-3 py-1.5 text-ink hover:bg-surface-2">{user ? "Board" : "Board sign-in"}</Link>
+            <Link href={user ? "/board" : "/login"} className="press ml-1 whitespace-nowrap rounded-full bg-ink px-3.5 py-1.5 text-bg hover:opacity-90">{user ? "Board" : <><span className="sm:hidden">Sign in</span><span className="hidden sm:inline">Board sign-in</span></>}</Link>
           </nav>
         </div>
       </header>

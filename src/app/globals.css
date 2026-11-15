@@ -1,6 +1,4 @@
 @import "tailwindcss";
-@import "@fontsource/instrument-serif/latin-400.css";
-@import "@fontsource/instrument-serif/latin-400-italic.css";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
@@ -12,19 +10,23 @@
   --brand-deep: #6d071a;
   --brand-accent: #cf2b36;
 
-  --bg: #faf8f5;
+  /* Neutral, cool greys: content first, chrome recedes. */
+  --bg: #f5f5f7;
   --surface: #ffffff;
-  --surface-2: #f5f2ed;
-  --surface-3: #ece8e1;
-  --line: #e6e1d9;
-  --line-strong: #d3ccc1;
-  --ink: #1c1716;
-  --ink-2: #4a4340;
-  --ink-3: #665e59;
+  --surface-2: #f0f0f3;
+  --surface-3: #e6e6eb;
+  --line: #e4e4e9;
+  --line-strong: #cfcfd6;
+  --ink: #1d1d1f;
+  --ink-2: #424245;
+  --ink-3: #636366;
   --brand-ink: var(--brand);
-  --brand-soft: color-mix(in oklab, var(--brand) 9%, var(--surface));
-  --brand-line: color-mix(in oklab, var(--brand) 28%, var(--surface));
+  --brand-soft: color-mix(in oklab, var(--brand) 8%, var(--surface));
+  --brand-line: color-mix(in oklab, var(--brand) 26%, var(--surface));
   --on-brand: #ffffff;
+  /* Translucent chrome (nav bars, sidebars): content scrolls underneath. */
+  --material: rgb(255 255 255 / 0.72);
+  --material-edge: rgb(0 0 0 / 0.08);
 
   --ok: #1f7a4d;
   --ok-soft: #e6f3ec;
@@ -35,27 +37,29 @@
   --info: #2b5f9e;
   --info-soft: #e8f0fa;
 
-  --shadow-sm: 0 1px 2px rgb(28 23 22 / 0.05);
-  --shadow-md: 0 4px 16px -4px rgb(28 23 22 / 0.1), 0 1px 3px rgb(28 23 22 / 0.06);
-  --shadow-lg: 0 24px 48px -16px rgb(28 23 22 / 0.22), 0 4px 12px rgb(28 23 22 / 0.08);
-  --radius: 10px;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.04);
+  --shadow-md: 0 6px 20px -6px rgb(0 0 0 / 0.12), 0 1px 3px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 30px 60px -20px rgb(0 0 0 / 0.25), 0 8px 20px -8px rgb(0 0 0 / 0.1);
+  --radius: 12px;
   --density: 1;
   color-scheme: light;
 }
 
 [data-theme="dark"] {
-  --bg: #121011;
-  --surface: #1a1718;
-  --surface-2: #221e1f;
-  --surface-3: #2c2728;
-  --line: #2f2a2b;
-  --line-strong: #453e3f;
-  --ink: #f3efed;
-  --ink-2: #cbc3bf;
-  --ink-3: #a79e9a;
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --surface-2: #2c2c2e;
+  --surface-3: #3a3a3c;
+  --line: #2f2f31;
+  --line-strong: #48484a;
+  --ink: #f5f5f7;
+  --ink-2: #d1d1d6;
+  --ink-3: #a1a1a6;
   --brand-ink: color-mix(in oklab, var(--brand-accent) 62%, #ffd9d6);
-  --brand-soft: color-mix(in oklab, var(--brand) 26%, var(--surface));
+  --brand-soft: color-mix(in oklab, var(--brand) 28%, var(--surface));
   --brand-line: color-mix(in oklab, var(--brand) 55%, var(--surface));
+  --material: rgb(28 28 30 / 0.72);
+  --material-edge: rgb(255 255 255 / 0.1);
 
   --ok: #6bc698;
   --ok-soft: #17291f;
@@ -66,9 +70,9 @@
   --info: #8bb6ea;
   --info-soft: #16222f;
 
-  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.4);
-  --shadow-md: 0 4px 16px -4px rgb(0 0 0 / 0.55);
-  --shadow-lg: 0 24px 48px -16px rgb(0 0 0 / 0.7);
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.5);
+  --shadow-md: 0 6px 20px -6px rgb(0 0 0 / 0.6);
+  --shadow-lg: 0 30px 60px -20px rgb(0 0 0 / 0.8);
   color-scheme: dark;
 }
 
@@ -101,9 +105,13 @@
   --color-danger-soft: var(--danger-soft);
   --color-info: var(--info);
   --color-info-soft: var(--info-soft);
-  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  /* The platform font first (it ships optical sizing and tracking tables); Geist elsewhere. */
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
-  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --radius-xl: 16px;
+  --radius-2xl: 22px;
+  --radius-3xl: 28px;
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
@@ -146,6 +154,8 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
+  letter-spacing: -0.003em;
+  -webkit-font-smoothing: antialiased;
 }
 ::selection {
   background: color-mix(in oklab, var(--brand) 22%, transparent);
@@ -178,6 +188,52 @@ a, button, [role="button"], input, select, textarea, summary {
 }
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+/* Display type: tracking tightens as size grows, leading stays tight; hierarchy comes from weight. */
+.font-display {
+  font-weight: 650;
+  letter-spacing: -0.022em;
+  font-optical-sizing: auto;
+}
+/* Translucent chrome. Content scrolls under it; a hairline replaces a hard divider. */
+.material {
+  background: var(--material);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+  box-shadow: 0 0.5px 0 var(--material-edge);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .material {
+    background: var(--surface);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+@media (prefers-contrast: more) {
+  .material {
+    background: var(--surface);
+    box-shadow: 0 1px 0 var(--line-strong);
+  }
+}
+/* Feedback lives on the press, and it is instant. */
+.press {
+  transition: transform 100ms ease-out, background-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+.press:active {
+  transform: scale(0.97);
+}
+/* Gentle arrival for page sections (opacity + transform only). */
+.rise {
+  animation: rise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.rise-2 { animation-delay: 60ms; }
+.rise-3 { animation-delay: 120ms; }
+@keyframes rise {
+  from { opacity: 0; transform: translateY(12px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise { animation: fade-in 0.2s ease both; }
+  .press:active { transform: none; }
 }
 /* Text and soft background derived from an arbitrary colour (--c), readable in both themes. */
 .tint {

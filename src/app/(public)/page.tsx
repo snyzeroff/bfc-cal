@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CalendarPlus } from "lucide-react";
+import { ArrowRight, CalendarPlus, MapPin } from "lucide-react";
 import { EventEmbed } from "@/components/event-embed";
 import { MembersCalendar } from "@/components/members-calendar";
 import { publishDueEvents } from "@/lib/events/service";
@@ -15,42 +15,67 @@ export default async function HomePage() {
   const upcoming = list.filter((e) => new Date(e.end).getTime() >= now && e.status === "published");
   // An event the board chose to feature takes the top of the page; otherwise the next one does.
   const next = upcoming.find((e) => e.featured) ?? upcoming[0];
+
   return (
-    <div className="flex flex-col gap-10">
-      <section className="grid items-end gap-8 lg:grid-cols-[1.2fr_1fr]">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-brand-ink">{appearance.orgName}</p>
-          <h1 className="mt-3 font-display text-[48px] leading-[0.98] tracking-[-0.02em] sm:text-[68px]">
-            Conferences<br /><span className="italic text-ink-3">&amp; events</span>
-          </h1>
-          <p className="mt-5 max-w-md text-[15px] leading-relaxed text-ink-2">{appearance.tagline}. Subscribe once and every new conference, change of room or cancellation reaches your own calendar.</p>
-          <Link href="/subscribe" className="mt-6 inline-flex h-11 items-center gap-2 rounded-lg bg-brand px-5 text-sm font-medium text-on-brand shadow-sm transition-colors hover:bg-brand-deep">
-            <CalendarPlus className="h-4 w-4" /> Subscribe to the calendar
+    <div className="flex flex-col gap-14 sm:gap-20">
+      {/* Headline: one idea, one action. */}
+      <section className="rise mx-auto flex max-w-3xl flex-col items-center pt-6 text-center sm:pt-12">
+        <p className="text-[13px] font-semibold text-brand-ink">{appearance.orgName}</p>
+        <h1 className="mt-3 font-display text-[clamp(2.6rem,7.2vw,4.75rem)] leading-[1.03] tracking-[-0.035em]">
+          Conferences &amp; events.
+        </h1>
+        <p className="mt-5 max-w-xl text-[clamp(1.05rem,2.1vw,1.3rem)] leading-snug text-ink-2">
+          {appearance.tagline}. Subscribe once: new conferences, room changes and cancellations reach your own calendar.
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link href="/subscribe" className="press inline-flex h-12 items-center gap-2 rounded-full bg-brand px-6 text-[15px] font-medium text-on-brand hover:bg-brand-deep">
+            <CalendarPlus className="h-[18px] w-[18px]" /> Subscribe to the calendar
           </Link>
+          <a href="#events" className="press inline-flex h-12 items-center gap-1.5 rounded-full px-5 text-[15px] font-medium text-brand-ink hover:bg-brand-soft">
+            See all events <ArrowRight className="h-4 w-4" />
+          </a>
         </div>
-        {next &&
-          (next.embedUrl ? (
-            <div>
-              <p className="mb-2 flex items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-brand-ink">
-                <span>{next.featured ? "Featured" : "Next up"} · {next.category.name}</span>
-                <Link href={`/events/${next.id}`} className="inline-flex items-center gap-1 normal-case tracking-normal text-ink-2 hover:text-ink">Details <ArrowRight className="h-3.5 w-3.5" /></Link>
-              </p>
-              <EventEmbed url={next.embedUrl} title={next.title} className="shadow-lg" />
-            </div>
-          ) : (
-          <Link href={`/events/${next.id}`} className="group relative overflow-hidden rounded-2xl bg-brand-deep p-6 text-white shadow-lg transition-transform hover:-translate-y-0.5">
-            <div className="pointer-events-none absolute -right-10 -top-10 h-44 w-44 rounded-full border border-white/10" aria-hidden />
-            <div className="pointer-events-none absolute -right-2 -top-2 h-28 w-28 rounded-full border border-white/10" aria-hidden />
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/60">{next.featured ? "Featured" : "Next up"} · {next.category.name}</p>
-            <p className="mt-3 font-display text-[30px] leading-[1.08]">{next.title}</p>
-            {next.speaker && <p className="mt-2 text-sm text-white/75">with {next.speaker.name}{next.speaker.organization ? ` · ${next.speaker.organization}` : ""}</p>}
-            <p className="mt-5 text-sm font-medium">{formatRange(new Date(next.start), new Date(next.end), next.allDay)}</p>
-            {next.location && <p className="text-sm text-white/70">{next.location}</p>}
-            <p className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium">Details <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" /></p>
-          </Link>
-          ))}
       </section>
-      <MembersCalendar events={list} defaultView={appearance.publicDefaultView} weekStartsOn={appearance.weekStartsOn} today={todayParis()} />
+
+      {/* The event that matters now. */}
+      {next && (
+        <section aria-label={next.featured ? "Featured event" : "Next event"} className="rise rise-2 overflow-hidden rounded-3xl bg-surface shadow-md ring-1 ring-line">
+          <div className={next.embedUrl ? "grid lg:grid-cols-[1.05fr_1fr]" : ""}>
+            <div className="flex flex-col justify-center p-7 sm:p-11">
+              <p className="text-[13px] font-semibold text-brand-ink">{next.featured ? "Featured" : "Next up"} · {next.category.name}</p>
+              <h2 className="mt-3 font-display text-[clamp(1.8rem,4vw,2.75rem)] leading-[1.08] tracking-[-0.03em]">{next.title}</h2>
+              {next.speaker && (
+                <p className="mt-3 text-[17px] text-ink-2">
+                  with <span className="font-medium text-ink">{next.speaker.name}</span>
+                  {(next.speaker.position || next.speaker.organization) && <span className="text-ink-3"> — {[next.speaker.position, next.speaker.organization].filter(Boolean).join(", ")}</span>}
+                </p>
+              )}
+              <dl className="mt-7 flex flex-col gap-1 text-[15px]">
+                <dt className="sr-only">When</dt>
+                <dd className="font-medium">{formatRange(new Date(next.start), new Date(next.end), next.allDay)}</dd>
+                {next.location && (
+                  <>
+                    <dt className="sr-only">Where</dt>
+                    <dd className="flex items-center gap-1.5 text-ink-2"><MapPin className="h-4 w-4 text-ink-3" />{next.location}</dd>
+                  </>
+                )}
+              </dl>
+              <Link href={`/events/${next.id}`} className="press mt-8 inline-flex h-11 items-center gap-1.5 self-start rounded-full bg-ink px-5 text-sm font-medium text-bg hover:opacity-90">
+                Event details <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            {next.embedUrl && (
+              <div className="border-t border-line bg-surface-2 p-4 sm:p-6 lg:border-l lg:border-t-0">
+                <EventEmbed url={next.embedUrl} title={next.title} className="rounded-2xl border-0 shadow-sm ring-1 ring-line" />
+              </div>
+            )}
+          </div>
+        </section>
+      )}
+
+      <div id="events" className="rise rise-3 scroll-mt-24">
+        <MembersCalendar events={list} defaultView={appearance.publicDefaultView} weekStartsOn={appearance.weekStartsOn} today={todayParis()} />
+      </div>
     </div>
   );
 }

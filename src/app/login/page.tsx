@@ -29,7 +29,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <div className="relative">
           <p className="font-display text-[56px] leading-[1.02] tracking-[-0.015em]">
             Plan every conference<br />
-            <span className="italic text-white/70">around the academic year.</span>
+            <span className="text-white/60">around the academic year.</span>
           </p>
           <p className="mt-6 max-w-md text-[15px] leading-relaxed text-white/65">
             The board workspace: tentative dates, speaker follow-up, exam periods, the 21-day rule before exams and one calendar your members can subscribe to.

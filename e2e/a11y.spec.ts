@@ -6,6 +6,8 @@ import { login } from "./helpers";
 /** WCAG 2.1 A/AA rules; serious and critical violations fail the build. */
 const problems: string[] = [];
 async function scan(page: Page, label: string) {
+  // Sections fade in on arrival: measure the settled page, not a mid-animation frame.
+  await page.waitForTimeout(900);
   const tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"];
   const results = await new AxeBuilder({ page }).withTags(tags).exclude(".fc").analyze();
   const violations = [...results.violations];
