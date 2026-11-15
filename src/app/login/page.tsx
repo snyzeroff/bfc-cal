@@ -23,7 +23,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <section className="relative hidden overflow-hidden bg-brand-deep p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="pointer-events-none absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "repeating-linear-gradient(90deg,#fff 0 1px,transparent 1px 96px),repeating-linear-gradient(0deg,#fff 0 1px,transparent 1px 96px)" }} aria-hidden />
         <div className="relative flex items-center gap-3">
-          <Logo shortName={appearance.shortName} size={34} className="bg-white/12 shadow-none ring-1 ring-white/25" />
+          <Logo shortName={appearance.shortName} size={34} />
           <span className="text-sm font-medium tracking-wide text-white/85">{appearance.orgName}</span>
         </div>
         <div className="relative">
