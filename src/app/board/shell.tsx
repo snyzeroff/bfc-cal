@@ -74,6 +74,7 @@ export function BoardShell({
 
   return (
     <div className="flex min-h-dvh">
+      <a href="#board-main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-surface focus:px-3 focus:py-2 focus:shadow-lg">Skip to content</a>
       {/* Desktop sidebar */}
       <aside className="sticky top-0 hidden h-dvh w-[224px] shrink-0 flex-col border-r border-line bg-surface-2/50 px-3 py-4 lg:flex">
         <Link href="/board" className="mb-5 flex items-center gap-2.5 rounded-lg px-2 py-1">
@@ -130,7 +131,7 @@ export function BoardShell({
           </Menu>
         </header>
 
-        <main className="flex-1 px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8">{children}</main>
+        <main id="board-main" className="flex-1 px-4 pb-24 pt-5 sm:px-6 lg:px-8 lg:pb-10 lg:pt-8">{children}</main>
 
         {/* Mobile bottom navigation */}
         <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden" aria-label="Board">

@@ -280,7 +280,11 @@ export function EventEditor({
 
       <Tabs
         value={tab}
-        onValueChange={setTab}
+        onValueChange={(v) => {
+          setTab(v);
+          // Keep the tab in the URL so it survives a reload and can be shared.
+          window.history.replaceState(null, "", `?tab=${v}`);
+        }}
         tabs={[
           { value: "details", label: "Details" },
           { value: "dates", label: "Dates", count: activeOptions },

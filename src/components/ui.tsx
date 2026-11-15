@@ -104,17 +104,20 @@ export function Switch({
   label,
   description,
   disabled,
+  hideLabel,
 }: {
   checked: boolean;
   onCheckedChange: (v: boolean) => void;
   label: string;
   description?: string;
   disabled?: boolean;
+  /** Keep the label for assistive technology only (e.g. a switch at the end of a table row). */
+  hideLabel?: boolean;
 }) {
   const id = React.useId();
   return (
     <div className="flex items-start justify-between gap-4">
-      <label htmlFor={id} className="min-w-0">
+      <label htmlFor={id} className={hideLabel ? "sr-only" : "min-w-0"}>
         <span className="block text-[13px] font-medium text-ink">{label}</span>
         {description && <span className="block text-xs text-ink-3">{description}</span>}
       </label>
@@ -150,7 +153,7 @@ export function Badge({
       style={color ? ({ "--c": color } as React.CSSProperties) : undefined}
       className={cn(
         "inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-full px-2 text-[11px] font-medium",
-        color && "bg-[color-mix(in_oklab,var(--c)_14%,var(--surface))] text-[color-mix(in_oklab,var(--c)_72%,var(--ink))]",
+        color && "tint tint-bg",
         !color && tone === "neutral" && "bg-surface-2 text-ink-2",
         !color && tone === "brand" && "bg-brand-soft text-brand-ink",
         !color && tone === "ok" && "bg-ok-soft text-ok",
@@ -178,7 +181,7 @@ export function Avatar({ name, size = 24, className }: { name: string; size?: nu
     <span
       title={name}
       aria-label={name}
-      style={{ width: size, height: size, fontSize: size * 0.4, background: `oklch(0.62 0.09 ${h})` }}
+      style={{ width: size, height: size, fontSize: size * 0.4, background: `oklch(0.48 0.1 ${h})` }}
       className={cn("inline-grid shrink-0 place-items-center rounded-full font-semibold text-white", className)}
     >
       {initials}

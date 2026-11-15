@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { KeyRound, Pencil, Plus, ShieldAlert, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import { archiveCategoryAction, deleteRuleAction, inviteUserAction, resetLinkAction, saveAppearanceAction, saveCategoryAction, saveFeedSettingsAction, saveRuleAction, saveVictorialesAction, toggleRuleAction, updateUserAction, type RuleInput } from "@/app/actions/settings";
+import { CATEGORY_ICONS, CategoryIcon } from "@/components/category-icon";
 import { CopyField } from "@/components/subscribe";
 import { Avatar, Badge, Button, Callout, Card, ColorField, Dialog, Field, Input, PageHeader, Segmented, Select, Switch, TabPanel, Tabs } from "@/components/ui";
 import { ACADEMIC_KINDS, CATEGORY_KINDS, EVENT_STATUSES, type AcademicKind, type CategoryKind, type Role } from "@/db/schema";
@@ -41,7 +42,11 @@ export function SettingsPanel(props: {
       <PageHeader title="Settings" description="Super Admin area. Every change here is recorded in the audit log." />
       <Tabs
         value={tab}
-        onValueChange={setTab}
+        onValueChange={(v) => {
+          setTab(v);
+          // Keep the tab in the URL so it survives a reload and can be shared.
+          window.history.replaceState(null, "", `?tab=${v}`);
+        }}
         tabs={[
           { value: "rules", label: "Scheduling rules" },
           { value: "appearance", label: "Appearance" },
@@ -149,7 +154,7 @@ function RulesTab({ victoriales, rules, layers, affected }: { victoriales: Victo
                 </p>
               </div>
               <Badge tone={r.severity === "hard" ? "danger" : "warn"}>{r.severity === "hard" ? "Hard block" : "Soft warning"}</Badge>
-              <Switch checked={r.active} onCheckedChange={(v) => mutate(() => toggleRuleAction(r.id, v))} label="" />
+              <Switch checked={r.active} onCheckedChange={(v) => mutate(() => toggleRuleAction(r.id, v))} label={`Rule “${r.name}” enabled`} hideLabel />
               <Button size="icon" variant="ghost" aria-label={`Edit ${r.name}`} onClick={() => setRuleForm({ id: r.id, form: { name: r.name, type: r.type as "date_range" | "academic_kind", severity: r.severity, appliesTo: r.appliesTo as CategoryKind[], startDate: r.params.startDate ?? null, endDate: r.params.endDate ?? null, kinds: (r.params.kinds ?? []) as AcademicKind[], layerKeys: r.params.layerKeys ?? [], message: r.message, active: r.active } })}><Pencil className="h-3.5 w-3.5" /></Button>
               <Button size="icon" variant="ghost" aria-label={`Delete ${r.name}`} onClick={() => confirm(`Delete the rule “${r.name}”?`) && mutate(() => deleteRuleAction(r.id), { success: "Rule deleted" })}><Trash2 className="h-3.5 w-3.5" /></Button>
             </div>
@@ -355,7 +360,7 @@ function CategoriesTab({ categories }: { categories: BoardCategory[] }) {
       <Card className="divide-y divide-line">
         {categories.map((c) => (
           <div key={c.id} className={cn("flex items-center gap-3 px-4 py-3", c.archived && "opacity-55")}>
-            <span className="h-3 w-3 rounded-full" style={{ background: c.color }} />
+            <span className="grid h-7 w-7 place-items-center rounded-lg text-white" style={{ background: c.color }}><CategoryIcon name={c.icon} /></span>
             <span className="flex-1 text-[13px] font-medium">{c.name}</span>
             <Badge>{KIND_LABEL[c.kind]}</Badge>
             {c.archived && <Badge tone="warn">Archived</Badge>}
@@ -383,6 +388,16 @@ function CategoriesTab({ categories }: { categories: BoardCategory[] }) {
               <Select value={form.kind} onChange={(e) => setForm({ ...form, kind: e.target.value as CategoryKind })}>{CATEGORY_KINDS.map((k) => <option key={k} value={k}>{KIND_LABEL[k]}</option>)}</Select>
             </Field>
             <div><p className="mb-2 text-xs font-medium text-ink-2">Colour</p><ColorField label="Category colour" value={form.color} onChange={(c) => setForm({ ...form, color: c })} /></div>
+            <div>
+              <p className="mb-2 text-xs font-medium text-ink-2">Icon</p>
+              <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label="Category icon">
+                {Object.entries(CATEGORY_ICONS).map(([key, { label }]) => (
+                  <button key={key} type="button" role="radio" aria-checked={form.icon === key} aria-label={label} title={label} onClick={() => setForm({ ...form, icon: key })} className={cn("grid h-8 w-8 place-items-center rounded-lg border", form.icon === key ? "border-brand-ink bg-brand-soft text-brand-ink" : "border-line text-ink-2 hover:bg-surface-2")}>
+                    <CategoryIcon name={key} className="h-4 w-4" />
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </Dialog>
       )}

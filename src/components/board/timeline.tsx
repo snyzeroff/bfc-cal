@@ -11,10 +11,10 @@ const LANE_H = 24;
 const LABEL_W = 148;
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-type Bar = { id: string; start: string; end: string; label: string; color: string; title: string; minWidth?: number; dashed?: boolean; onClick?: () => void; muted?: boolean; strike?: boolean };
+type Bar = { id: string; start: string; end: string; label: string; color: string; title: string; minWidth?: number; /** Draw the true duration as a block and the label beside it. */ marker?: boolean; dashed?: boolean; onClick?: () => void; muted?: boolean; strike?: boolean };
 
 /** Greedy lane packing so overlapping bars stack instead of colliding. */
-function pack(bars: Bar[], origin: string, total: number): { bar: Bar; lane: number; left: number; width: number }[] {
+function pack(bars: Bar[], origin: string, total: number): { bar: Bar; lane: number; left: number; width: number; span: number }[] {
   const laneEnds: number[] = [];
   return bars
     .map((bar) => {
@@ -26,11 +26,12 @@ function pack(bars: Bar[], origin: string, total: number): { bar: Bar; lane: num
     .sort((a, b) => a.s - b.s || b.e - a.e)
     .map(({ bar, s, e }) => {
       const left = s * DAY_W;
-      const width = Math.max((e - s + 1) * DAY_W, bar.minWidth ?? 0);
+      const span = (e - s + 1) * DAY_W;
+      const width = bar.marker ? span + (bar.minWidth ?? 0) : Math.max(span, bar.minWidth ?? 0);
       let lane = laneEnds.findIndex((end) => end <= left);
       if (lane === -1) lane = laneEnds.length;
       laneEnds[lane] = left + width + 2;
-      return { bar, lane, left, width };
+      return { bar, lane, left, width, span };
     });
 }
 
@@ -108,7 +109,8 @@ export function Timeline({
           label: e.title,
           color: e.color,
           title: `${e.title} — ${formatIsoRange(start, end < start ? start : end)}`,
-          minWidth: Math.min(260, e.title.length * 6.3 + 26),
+          minWidth: Math.min(240, e.title.length * 6.1 + 14),
+          marker: true,
           dashed: ["idea", "proposed", "awaiting_confirmation", "tentative"].includes(e.status),
           strike: e.status === "cancelled",
           onClick: () => onOpenEvent(e.id),
@@ -121,7 +123,8 @@ export function Timeline({
       label: `Option · ${p.eventTitle}`,
       color: p.color,
       title: `Proposed date for ${p.eventTitle}`,
-      minWidth: Math.min(260, (p.eventTitle.length + 9) * 6.3 + 26),
+      minWidth: Math.min(240, (p.eventTitle.length + 9) * 6.1 + 14),
+      marker: true,
       dashed: true,
       onClick: () => onOpenEvent(p.eventId),
     })),
@@ -163,8 +166,8 @@ export function Timeline({
           <div>
             <div className="flex border-b border-line">
               {monthSpans.map((m) => (
-                <div key={m.label} style={{ width: m.count * DAY_W }} className="overflow-hidden border-r border-line px-2 py-1.5 text-xs font-semibold text-ink">
-                  <span className="sticky left-[156px] whitespace-nowrap">{m.label}</span>
+                <div key={m.label} style={{ width: m.count * DAY_W }} className="border-r border-line py-1.5 text-xs font-semibold text-ink">
+                  <span className="sticky inline-block whitespace-nowrap px-2" style={{ left: LABEL_W }}>{m.label}</span>
                 </div>
               ))}
             </div>
@@ -211,17 +214,38 @@ export function Timeline({
                     return <div key={d} style={{ width: DAY_W }} className={cn((wd === 0 || wd === 6) && "bg-surface-2/70", d.endsWith("-01") && "border-l border-line-strong")} />;
                   })}
                 </div>
-                {packed.map(({ bar, lane, left, width: w }) => {
+                {packed.map(({ bar, lane, left, width: w, span }) => {
+                  if (bar.marker) {
+                    return (
+                      <button
+                        key={bar.id}
+                        type="button"
+                        onClick={bar.onClick}
+                        title={bar.title}
+                        style={{ left, width: w - 2, top: lane * LANE_H + 5, height: LANE_H - 4, "--c": bar.color } as React.CSSProperties}
+                        className={cn("group absolute flex items-center gap-1.5 text-left text-[11px] font-medium leading-none text-ink-2 hover:text-ink", bar.strike && "line-through opacity-60")}
+                      >
+                        <span
+                          style={{ width: span - 3 }}
+                          className={cn(
+                            "h-full shrink-0 rounded-[5px]",
+                            bar.dashed ? "border border-dashed border-[var(--c)] bg-[color-mix(in_oklab,var(--c)_10%,var(--surface))]" : "bg-[var(--c)] group-hover:brightness-110",
+                          )}
+                        />
+                        <span className="truncate">{bar.label}</span>
+                      </button>
+                    );
+                  }
                   const style = { left, width: w - 2, top: lane * LANE_H + 5, height: LANE_H - 4, "--c": bar.color } as React.CSSProperties;
                   const cls = cn(
                     "absolute flex items-center overflow-hidden rounded-[5px] px-1.5 text-left text-[11px] font-medium leading-none",
                     row.tone === "danger" && !bar.dashed && bar.color === "var(--danger)"
                       ? "hatch-danger text-danger ring-1 ring-inset ring-danger/40"
                       : bar.dashed
-                        ? "border border-dashed border-[var(--c)] bg-[color-mix(in_oklab,var(--c)_8%,var(--surface))] text-[color-mix(in_oklab,var(--c)_75%,var(--ink))]"
+                        ? "tint border border-dashed border-[var(--c)] bg-[color-mix(in_oklab,var(--c)_8%,var(--surface))]"
                         : bar.muted
-                          ? "bg-[color-mix(in_oklab,var(--c)_14%,var(--surface))] text-ink-3"
-                          : "bg-[color-mix(in_oklab,var(--c)_22%,var(--surface))] text-[color-mix(in_oklab,var(--c)_70%,var(--ink))] shadow-[inset_3px_0_0_var(--c)]",
+                          ? "bg-[color-mix(in_oklab,var(--c)_14%,var(--surface))] text-ink-2"
+                          : "tint bg-[color-mix(in_oklab,var(--c)_20%,var(--surface))] shadow-[inset_3px_0_0_var(--c)]",
                     bar.strike && "line-through opacity-60",
                     bar.onClick && "cursor-pointer hover:brightness-95",
                   );

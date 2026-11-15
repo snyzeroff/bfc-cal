@@ -148,7 +148,7 @@ export function ImportReview({
             const locked = c.status === "approved";
             const days = diffDays(c.start, c.end) + 1;
             return (
-              <li key={c.id} className={cn("rounded-xl border bg-surface px-3 py-2.5", c.status === "approved" ? "border-ok/30" : c.status === "rejected" ? "border-line opacity-60" : c.confidence < HIGH ? "border-warn/40" : "border-line")}>
+              <li key={c.id} className={cn("cv-auto rounded-xl border bg-surface px-3 py-2.5", c.status === "approved" ? "border-ok/30" : c.status === "rejected" ? "border-line opacity-60" : c.confidence < HIGH ? "border-warn/40" : "border-line")}>
                 <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
                   <input type="checkbox" disabled={locked} checked={selected.has(c.id)} onChange={() => setSelected((s) => { const n = new Set(s); if (n.has(c.id)) n.delete(c.id); else n.add(c.id); return n; })} className="h-4 w-4 accent-[var(--brand)]" aria-label={`Select ${c.label}`} />
                   <input

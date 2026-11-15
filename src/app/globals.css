@@ -20,7 +20,7 @@
   --line-strong: #d3ccc1;
   --ink: #1c1716;
   --ink-2: #4a4340;
-  --ink-3: #7a726d;
+  --ink-3: #665e59;
   --brand-ink: var(--brand);
   --brand-soft: color-mix(in oklab, var(--brand) 9%, var(--surface));
   --brand-line: color-mix(in oklab, var(--brand) 28%, var(--surface));
@@ -28,7 +28,7 @@
 
   --ok: #1f7a4d;
   --ok-soft: #e6f3ec;
-  --warn: #9a6408;
+  --warn: #7f5203;
   --warn-soft: #fbf1dc;
   --danger: #b3261e;
   --danger-soft: #fbe9e7;
@@ -52,7 +52,7 @@
   --line-strong: #453e3f;
   --ink: #f3efed;
   --ink-2: #cbc3bf;
-  --ink-3: #978e8a;
+  --ink-3: #a79e9a;
   --brand-ink: color-mix(in oklab, var(--brand-accent) 62%, #ffd9d6);
   --brand-soft: color-mix(in oklab, var(--brand) 26%, var(--surface));
   --brand-line: color-mix(in oklab, var(--brand) 55%, var(--surface));
@@ -164,8 +164,33 @@ button:disabled {
 h1, h2, h3 {
   text-wrap: balance;
 }
+a, button, [role="button"], input, select, textarea, summary {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+[role="dialog"] {
+  overscroll-behavior: contain;
+}
+/* Long lists: skip layout/paint of off-screen rows. */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 72px;
+}
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+/* Text and soft background derived from an arbitrary colour (--c), readable in both themes. */
+.tint {
+  color: color-mix(in oklab, var(--c) 55%, var(--ink));
+}
+.tint-bg {
+  background: color-mix(in oklab, var(--c) 13%, var(--surface));
+}
+[data-theme="dark"] .tint {
+  color: color-mix(in oklab, var(--c) 38%, #fff);
+}
+[data-theme="dark"] .tint-bg {
+  background: color-mix(in oklab, var(--c) 26%, var(--surface));
 }
 .scroll-thin {
   scrollbar-width: thin;
@@ -200,6 +225,8 @@ h1, h2, h3 {
   --fc-list-event-hover-bg-color: var(--surface-2);
   --fc-event-border-color: transparent;
   --fc-small-font-size: 0.8em;
+  --fc-bg-event-color: transparent;
+  --fc-bg-event-opacity: 1;
   font-family: var(--font-sans);
   font-size: 13px;
 }
@@ -248,7 +275,9 @@ h1, h2, h3 {
 }
 .fc .fc-day-other .fc-daygrid-day-number {
   color: var(--ink-3);
-  opacity: 0.6;
+}
+.fc .fc-day-other .fc-daygrid-day-top {
+  opacity: 1;
 }
 .fc .fc-daygrid-day-frame {
   min-height: calc(112px * var(--density));
@@ -349,7 +378,7 @@ h1, h2, h3 {
   line-height: 1.25;
   font-weight: 500;
   overflow: hidden;
-  color: color-mix(in oklab, var(--c) 78%, var(--ink));
+  color: color-mix(in oklab, var(--c) 55%, var(--ink));
   background: color-mix(in oklab, var(--c) 14%, var(--surface));
   border-left: 3px solid var(--c);
   transition: background 0.12s, box-shadow 0.12s;
@@ -358,7 +387,7 @@ h1, h2, h3 {
   background: color-mix(in oklab, var(--c) 22%, var(--surface));
 }
 [data-theme="dark"] .ev-chip {
-  color: color-mix(in oklab, var(--c) 45%, #fff);
+  color: color-mix(in oklab, var(--c) 30%, #fff);
   background: color-mix(in oklab, var(--c) 30%, var(--surface));
 }
 [data-event-style="solid"] .ev-chip:not(.ev-tentative):not(.ev-task) {
@@ -443,7 +472,7 @@ h1, h2, h3 {
   line-height: 1.2;
   font-weight: 600;
   letter-spacing: 0.02em;
-  color: color-mix(in oklab, var(--c, var(--danger)) 75%, var(--ink));
+  color: color-mix(in oklab, var(--c, var(--danger)) 60%, var(--ink));
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -451,8 +480,13 @@ h1, h2, h3 {
 }
 .bg-restricted .bg-label {
   --c: var(--danger);
-  bottom: auto;
-  top: 30px;
+  left: auto;
+  right: 6px;
+  bottom: 4px;
+  max-width: calc(100% - 12px);
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--surface) 82%, transparent);
 }
 
 @media (max-width: 640px) {

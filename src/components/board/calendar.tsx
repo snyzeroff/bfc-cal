@@ -214,13 +214,13 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
       const x = arg.event.extendedProps;
       const block = arg.view.type.startsWith("timeGrid") && !arg.event.allDay;
       const time = arg.event.allDay || !arg.event.start ? "" : arg.event.start.toISOString().slice(11, 16);
-      if (x.type === "window") return <span className="bg-label">{x.w.severity === "hard" ? "⛔ " : ""}{x.w.title}</span>;
+      if (x.type === "window") return <span className="bg-label">{x.w.title}</span>;
       if (x.type === "academic") {
         const meta = ACADEMIC_KIND_META[x.a.kind as keyof typeof ACADEMIC_KIND_META];
         return (
-          <div className="flex h-[17px] items-center gap-1 overflow-hidden rounded-[4px] px-1.5 text-[10.5px] font-medium leading-none" style={{ background: `color-mix(in oklab, ${meta.color} 16%, var(--surface))`, color: `color-mix(in oklab, ${meta.color} 70%, var(--ink))`, boxShadow: `inset 2px 0 0 ${x.layer.color}` }} title={`${x.layer.name} · ${meta.label}: ${x.a.label} (${formatIsoRange(x.a.start, x.a.end)})`}>
+          <div className="tint tint-bg flex h-[17px] items-center gap-1 overflow-hidden rounded-[4px] px-1.5 text-[10.5px] font-medium leading-none" style={{ "--c": meta.color, boxShadow: `inset 2px 0 0 ${x.layer.color}` } as React.CSSProperties} title={`${x.layer.name} · ${meta.label}: ${x.a.label} (${formatIsoRange(x.a.start, x.a.end)})`}>
             <span className="truncate">
-              <span className="opacity-70">{x.layer.name} · </span>
+              <span>{x.layer.name} · </span>
               {x.a.label}
             </span>
           </div>
@@ -325,8 +325,10 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
 
   const timelineTitle = useMemo(() => {
     const [y, m] = tlFrom.split("-").map(Number);
-    const end = new Date(Date.UTC(y, m + 4, 0)).toISOString().slice(0, 10);
-    return formatIsoRange(tlFrom, end).replace(/\b\w{3} (\d)/g, "$1");
+    const fmt = (d: Date, withYear: boolean) => d.toLocaleDateString("en-GB", { month: "short", year: withYear ? "numeric" : undefined, timeZone: "UTC" });
+    const first = new Date(Date.UTC(y, m - 1, 1));
+    const last = new Date(Date.UTC(y, m + 3, 1));
+    return `${fmt(first, first.getUTCFullYear() !== last.getUTCFullYear())} – ${fmt(last, true)}`;
   }, [tlFrom]);
 
   const openEvent = data.events.find((e) => e.id === openId) ?? null;

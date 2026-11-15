@@ -1,26 +1,28 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import { CalendarX2, ChevronLeft, ChevronRight, MapPin } from "lucide-react";
+import dynamic from "next/dynamic";
+import { useMemo, useState } from "react";
+import { CalendarX2, MapPin } from "lucide-react";
+import { CategoryIcon } from "@/components/category-icon";
 import { Button, Segmented } from "@/components/ui";
 import { cn } from "@/lib/cn";
 import type { PublicEventJson } from "@/lib/public";
-import { formatTime, instantToWall, parisDay } from "@/lib/time";
+import { formatTime, parisDay } from "@/lib/time";
+
+// FullCalendar is only needed for the month grid: load it when a visitor asks for that view.
+const MembersMonth = dynamic(() => import("./members-month").then((m) => m.MembersMonth), {
+  ssr: false,
+  loading: () => <div className="grid h-[420px] place-items-center rounded-xl border border-line bg-surface text-[13px] text-ink-3">Loading the month view…</div>,
+});
 
 const MONTH = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", month: "long", year: "numeric" });
 const WEEKDAY = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", weekday: "short" });
 const MON = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", month: "short" });
 
 export function MembersCalendar({ events, defaultView, weekStartsOn, today }: { events: PublicEventJson[]; defaultView: "agenda" | "month"; weekStartsOn: 0 | 1; today: string }) {
-  const router = useRouter();
-  const cal = useRef<FullCalendar>(null);
   const [view, setView] = useState(defaultView);
   const [category, setCategory] = useState("");
-  const [title, setTitle] = useState("");
   const [showPast, setShowPast] = useState(false);
 
   const categories = useMemo(() => [...new Map(events.map((e) => [e.category.name, e.category])).values()], [events]);
@@ -77,44 +79,7 @@ export function MembersCalendar({ events, defaultView, weekStartsOn, today }: { 
           )}
         </>
       ) : (
-        <div>
-          <div className="mb-3 flex items-center gap-1">
-            <Button variant="outline" size="sm" onClick={() => cal.current?.getApi().today()}>Today</Button>
-            <Button variant="ghost" size="icon" aria-label="Previous month" onClick={() => cal.current?.getApi().prev()}><ChevronLeft className="h-4 w-4" /></Button>
-            <Button variant="ghost" size="icon" aria-label="Next month" onClick={() => cal.current?.getApi().next()}><ChevronRight className="h-4 w-4" /></Button>
-            <h2 className="ml-2 font-display text-2xl" aria-live="polite">{title}</h2>
-          </div>
-          <div className="overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
-            <FullCalendar
-              ref={cal}
-              plugins={[dayGridPlugin]}
-              initialView="dayGridMonth"
-              headerToolbar={false}
-              timeZone="UTC"
-              now={() => `${instantToWall(new Date())}:00Z`}
-              firstDay={weekStartsOn}
-              height="auto"
-              dayMaxEvents={3}
-              displayEventTime={false}
-              datesSet={(a) => setTitle(a.view.title)}
-              events={filtered.map((e) => {
-                const s = instantToWall(new Date(e.start));
-                const en = instantToWall(new Date(e.end));
-                return { id: e.id, title: e.title, start: e.allDay ? s.slice(0, 10) : `${s}:00Z`, end: e.allDay ? en.slice(0, 10) : `${en}:00Z`, allDay: e.allDay, extendedProps: { e, time: s.slice(11) } };
-              })}
-              eventClick={(a) => router.push(`/events/${a.event.id}`)}
-              eventContent={(a) => {
-                const e = a.event.extendedProps.e as PublicEventJson;
-                return (
-                  <div className={cn("ev-chip", e.status === "cancelled" && "ev-cancelled")} style={{ "--c": e.category.color } as React.CSSProperties} title={e.title}>
-                    {!e.allDay && <span className="ev-time">{a.event.extendedProps.time}</span>}
-                    <span className="ev-title">{e.title}</span>
-                  </div>
-                );
-              }}
-            />
-          </div>
-        </div>
+        <MembersMonth events={filtered} weekStartsOn={weekStartsOn} />
       )}
     </section>
   );
@@ -141,8 +106,8 @@ function EventRow({ e }: { e: PublicEventJson }) {
       </div>
       <div className="min-w-0 flex-1">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium">
-          <span className="inline-flex items-center gap-1.5" style={{ color: `color-mix(in oklab, ${e.category.color} 75%, var(--ink))` }}>
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: e.category.color }} />
+          <span className="tint inline-flex items-center gap-1.5" style={{ "--c": e.category.color } as React.CSSProperties}>
+            <CategoryIcon name={e.category.icon} className="h-3 w-3" />
             {e.category.name}
           </span>
           {cancelled && <span className="rounded-full bg-danger-soft px-2 py-0.5 text-danger">Cancelled</span>}

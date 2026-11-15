@@ -32,7 +32,7 @@ export function DiscussionPanel({ detail, readOnly }: { detail: EventDetail; rea
                   <p className="text-xs text-ink-3">
                     <span className="font-medium text-ink">{c.userName}</span> · {formatDateTime(new Date(c.createdAt))}
                     {(c.userId === me.id || me.isAdmin) && (
-                      <button onClick={() => mutate(() => deleteCommentAction(c.id))} className="ml-2 text-ink-3 opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100 max-sm:opacity-100">Delete</button>
+                      <button onClick={() => confirm("Delete this comment?") && mutate(() => deleteCommentAction(c.id))} className="ml-2 text-ink-3 opacity-0 hover:text-danger focus:opacity-100 group-hover:opacity-100 max-sm:opacity-100">Delete</button>
                     )}
                   </p>
                   <p className="mt-0.5 whitespace-pre-line text-[13px] leading-relaxed text-ink-2">{c.body}</p>
@@ -78,7 +78,7 @@ export function DiscussionPanel({ detail, readOnly }: { detail: EventDetail; rea
                 <a href={a.url} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate hover:underline" title={a.url}>{a.name}</a>
                 <ExternalLink className="h-3 w-3 shrink-0 text-ink-3" />
                 {!readOnly && (
-                  <button aria-label={`Remove ${a.name}`} onClick={() => mutate(() => removeAttachmentAction(a.id))} className="text-ink-3 hover:text-danger"><Trash2 className="h-3.5 w-3.5" /></button>
+                  <button aria-label={`Remove ${a.name}`} onClick={() => confirm(`Remove “${a.name}”?`) && mutate(() => removeAttachmentAction(a.id))} className="text-ink-3 hover:text-danger"><Trash2 className="h-3.5 w-3.5" /></button>
                 )}
               </li>
             ))}

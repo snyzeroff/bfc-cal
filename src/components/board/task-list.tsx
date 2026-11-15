@@ -108,7 +108,7 @@ export function TaskList({
                   <span className="text-xs text-ink-3">Unassigned</span>
                 )}
                 {(me.isAdmin || t.createdBy === me.id) && (
-                  <button aria-label={`Delete “${t.title}”`} onClick={() => mutate(() => deleteTaskAction(t.id), { success: "Task deleted" })} className="grid h-7 w-7 place-items-center rounded-md text-ink-3 opacity-0 hover:bg-danger-soft hover:text-danger focus:opacity-100 group-hover:opacity-100 max-sm:opacity-100">
+                  <button aria-label={`Delete “${t.title}”`} onClick={() => confirm(`Delete the task “${t.title}”?`) && mutate(() => deleteTaskAction(t.id), { success: "Task deleted" })} className="grid h-7 w-7 place-items-center rounded-md text-ink-3 opacity-0 hover:bg-danger-soft hover:text-danger focus:opacity-100 group-hover:opacity-100 max-sm:opacity-100">
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 )}

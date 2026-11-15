@@ -136,7 +136,7 @@ export function AcademicManager({ layers, entries, imports }: { layers: BoardLay
                       {me.isAdmin && (
                         <span className="flex opacity-0 focus-within:opacity-100 group-hover:opacity-100 max-lg:opacity-100">
                           <button aria-label={`Edit ${e.label}`} onClick={() => setEntryForm({ id: e.id, layerId: e.layerId, label: e.label, kind: e.kind, startDate: e.start, endDate: e.end })} className="grid h-7 w-7 place-items-center rounded-md text-ink-3 hover:bg-surface-2 hover:text-ink"><Pencil className="h-3.5 w-3.5" /></button>
-                          <button aria-label={`Delete ${e.label}`} onClick={() => mutate(() => deleteEntryAction(e.id), { success: "Period deleted" })} className="grid h-7 w-7 place-items-center rounded-md text-ink-3 hover:bg-danger-soft hover:text-danger"><Trash2 className="h-3.5 w-3.5" /></button>
+                          <button aria-label={`Delete ${e.label}`} onClick={() => confirm(`Delete “${e.label}” from this calendar?`) && mutate(() => deleteEntryAction(e.id), { success: "Period deleted" })} className="grid h-7 w-7 place-items-center rounded-md text-ink-3 hover:bg-danger-soft hover:text-danger"><Trash2 className="h-3.5 w-3.5" /></button>
                         </span>
                       )}
                     </li>
@@ -164,7 +164,7 @@ export function AcademicManager({ layers, entries, imports }: { layers: BoardLay
                   {me.isAdmin && (
                     <>
                       <Link href={`/board/academic/imports/${i.id}`} className="text-[13px] font-medium text-brand-ink underline-offset-2 hover:underline">{i.pending ? "Review" : "Open"}</Link>
-                      <button aria-label={`Delete import ${i.filename}`} title="Delete this import (approved periods are kept)" onClick={() => mutate(() => deleteImportAction(i.id, false), { success: "Import deleted — approved periods were kept" })} className="grid h-7 w-7 place-items-center rounded-md text-ink-3 hover:bg-danger-soft hover:text-danger"><Trash2 className="h-3.5 w-3.5" /></button>
+                      <button aria-label={`Delete import ${i.filename}`} title="Delete this import (approved periods are kept)" onClick={() => confirm(`Delete the import “${i.filename}”? Periods already approved are kept; rows still to review are discarded.`) && mutate(() => deleteImportAction(i.id, false), { success: "Import deleted — approved periods were kept" })} className="grid h-7 w-7 place-items-center rounded-md text-ink-3 hover:bg-danger-soft hover:text-danger"><Trash2 className="h-3.5 w-3.5" /></button>
                     </>
                   )}
                 </li>

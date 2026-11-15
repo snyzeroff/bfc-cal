@@ -126,7 +126,7 @@ function EventCard({ e, users }: { e: BoardEvent; users: BoardUser[] }) {
   const orgs = users.filter((u) => e.organizerIds.includes(u.id));
   return (
     <Link href={`/board/events/${e.id}`} className="block rounded-lg border border-line bg-surface p-3 shadow-sm transition-[border-color,box-shadow] hover:border-line-strong hover:shadow-md">
-      <p className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: `color-mix(in oklab, ${e.color} 75%, var(--ink))` }}>
+      <p className="tint flex items-center gap-1.5 text-[11px] font-medium" style={{ "--c": e.color } as React.CSSProperties}>
         <span className="h-1.5 w-1.5 rounded-full" style={{ background: e.color }} />
         {e.categoryName}
         {e.isPublic && <Globe className="ml-auto h-3 w-3 text-brand-ink" aria-label="Public" />}

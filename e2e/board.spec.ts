@@ -175,6 +175,7 @@ test("private subscription: works with its secret address, stops when revoked", 
   expect(body).not.toContain("E2E-PRIVATE-NOTE"); // …but never internal notes
 
   await page.getByRole("button", { name: "Done" }).click();
+  page.once("dialog", (d) => d.accept());
   await page.getByRole("button", { name: "Revoke" }).click();
   await expect(page.getByText("Subscription revoked — the address no longer works")).toBeVisible();
   expect((await request.get(url)).status()).toBe(404);
@@ -193,4 +194,34 @@ test("tasks: assign, complete, and see the deadline on the board calendar only",
   expect(await (await request.get("/feeds/public.ics")).text()).not.toContain("book the room");
   await page.getByRole("checkbox", { name: /Complete “E2E — book the room”/ }).click();
   await expect(page.getByText("1/1 done")).toBeVisible();
+});
+
+test("calendar: drag an event to another day, then undo", async ({ page }) => {
+  await login(page, "admin");
+  await page.goto("/board/calendar");
+  const chip = page.locator(".fc-daygrid-event", { hasText: "Seeded private conference" }).first();
+  for (let i = 0; i < 3 && !(await chip.isVisible()); i++) await page.getByRole("button", { name: "Next", exact: true }).click();
+  await expect(chip).toBeVisible();
+
+  const from = (await chip.boundingBox())!;
+  const fromDay = await chip.evaluate((el) => el.closest("[data-date]")!.getAttribute("data-date"));
+  // Drop it on a neighbouring weekday cell in the same row (left if possible, else right).
+  const cells = page.locator(".fc-daygrid-day");
+  const index = await chip.evaluate((el) => [...document.querySelectorAll(".fc-daygrid-day")].indexOf(el.closest(".fc-daygrid-day")!));
+  const target = cells.nth(index % 7 === 0 ? index + 1 : index - 1);
+  const toDay = await target.getAttribute("data-date");
+  const to = (await target.boundingBox())!;
+
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2 + 8, from.y + from.height / 2 + 4, { steps: 3 });
+  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 12 });
+  await page.mouse.up();
+
+  await expect(page.getByText(/^Moved to /)).toBeVisible();
+  await expect(page.locator(`.fc-daygrid-day[data-date="${toDay}"]`).getByText("Seeded private conference")).toBeVisible();
+
+  await page.getByRole("button", { name: "Undo" }).click();
+  await expect(page.getByText("Move undone")).toBeVisible();
+  await expect(page.locator(`.fc-daygrid-day[data-date="${fromDay}"]`).getByText("Seeded private conference")).toBeVisible();
 });

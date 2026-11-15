@@ -26,7 +26,7 @@ export function LoginForm({ next }: { next: string }) {
     >
       {error && <Callout tone="danger">{error}</Callout>}
       <Field label="Email">
-        <Input name="email" type="email" autoComplete="username" required autoFocus placeholder="you@student-cs.fr" className="h-11" />
+        <Input name="email" type="email" autoComplete="username" spellCheck={false} required autoFocus placeholder="you@student-cs.fr" className="h-11" />
       </Field>
       <Field label="Password">
         <Input name="password" type="password" autoComplete="current-password" required className="h-11" />

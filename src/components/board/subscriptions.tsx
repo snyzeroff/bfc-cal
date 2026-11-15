@@ -36,8 +36,8 @@ export function Subscriptions({ publicUrl, shortName, tokens, retentionDays }: {
                       {[t.includeTentative ? "with proposed dates" : "confirmed events only", t.includeDeadlines ? "with deadlines" : null].filter(Boolean).join(" · ")} · created {formatDateTime(new Date(t.createdAt))} · {t.lastUsedAt ? `last fetched ${formatDateTime(new Date(t.lastUsedAt))}` : "never fetched yet"}
                     </p>
                   </div>
-                  <Button size="sm" variant="outline" loading={busy} title="Issue a new address and disable the old one" onClick={() => mutate(() => rotateFeedAction(t.id), { onOk: (d) => setRevealed({ url: d.url, rotated: true }) })}><RefreshCw className="h-3.5 w-3.5" /> Rotate</Button>
-                  <Button size="sm" variant="danger" onClick={() => mutate(() => revokeFeedAction(t.id), { success: "Subscription revoked — the address no longer works" })}><Trash2 className="h-3.5 w-3.5" /> Revoke</Button>
+                  <Button size="sm" variant="outline" loading={busy} title="Issue a new address and disable the old one" onClick={() => confirm(`Rotate “${t.label}”? The current address stops working immediately.`) && mutate(() => rotateFeedAction(t.id), { onOk: (d) => setRevealed({ url: d.url, rotated: true }) })}><RefreshCw className="h-3.5 w-3.5" /> Rotate</Button>
+                  <Button size="sm" variant="danger" onClick={() => confirm(`Revoke “${t.label}”? Calendars using this address will stop updating.`) && mutate(() => revokeFeedAction(t.id), { success: "Subscription revoked — the address no longer works" })}><Trash2 className="h-3.5 w-3.5" /> Revoke</Button>
                 </div>
               ))}
             </Card>

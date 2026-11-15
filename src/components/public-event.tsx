@@ -1,4 +1,5 @@
 import { CalendarDays, ExternalLink, MapPin, Mic2, Video } from "lucide-react";
+import { CategoryIcon } from "@/components/category-icon";
 import { cn } from "@/lib/cn";
 import type { PublicEventJson } from "@/lib/public";
 import { formatRange } from "@/lib/time";
@@ -17,8 +18,8 @@ export function PublicEventView({ event, compact }: { event: PublicEventJson; co
     <article className={cn("flex flex-col", compact ? "gap-5" : "gap-8")}>
       <header>
         <div className="flex flex-wrap items-center gap-2 text-xs font-medium">
-          <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1" style={{ background: `color-mix(in oklab, ${event.category.color} 13%, var(--surface))`, color: `color-mix(in oklab, ${event.category.color} 75%, var(--ink))` }}>
-            <span className="h-1.5 w-1.5 rounded-full" style={{ background: event.category.color }} />
+          <span className="tint tint-bg inline-flex items-center gap-1.5 rounded-full px-2.5 py-1" style={{ "--c": event.category.color } as React.CSSProperties}>
+            <CategoryIcon name={event.category.icon} className="h-3 w-3" />
             {event.category.name}
           </span>
           {state && <span className={cn("rounded-full px-2.5 py-1", state.cls)}>{state.label}</span>}
@@ -73,12 +74,12 @@ export function PublicEventView({ event, compact }: { event: PublicEventJson; co
 
 function Fact({ icon, label, children }: { icon: React.ReactNode; label: string; children: React.ReactNode }) {
   return (
-    <div className="flex gap-3 bg-surface p-4">
-      <span className="mt-0.5 text-brand-ink [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
-      <div className="min-w-0">
-        <dt className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">{label}</dt>
-        <dd className="mt-0.5 text-sm font-medium text-ink">{children}</dd>
-      </div>
+    <div className="bg-surface p-4">
+      <dt className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">
+        <span className="text-brand-ink [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
+        {label}
+      </dt>
+      <dd className="mt-1 pl-6 text-sm font-medium text-ink">{children}</dd>
     </div>
   );
 }
