@@ -206,6 +206,10 @@ export const events = pgTable(
     location: text("location").notNull().default(""),
     onlineUrl: text("online_url").notNull().default(""),
     registrationUrl: text("registration_url").notNull().default(""),
+    /** Validated embed URL of an external registration widget (Luma). Never raw HTML. */
+    embedUrl: text("embed_url").notNull().default(""),
+    /** Shown at the top of the members site while it is public and upcoming. */
+    featured: boolean("featured").notNull().default(false),
     color: text("color"),
     /** Academic programs this event targets (layer program keys); empty = everyone. */
     audience: jsonb("audience").$type<string[]>().notNull().default([]),

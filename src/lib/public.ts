@@ -1,6 +1,7 @@
 import "server-only";
 import { publicSql } from "@/db";
 import type { EventStatus } from "@/db/schema";
+import { isAllowedEmbed } from "@/lib/embed";
 
 /**
  * Read model for unauthenticated visitors. Every query here goes through the
@@ -17,6 +18,8 @@ export type PublicEvent = {
   location: string;
   onlineUrl: string;
   registrationUrl: string;
+  embedUrl: string;
+  featured: boolean;
   status: EventStatus;
   sequence: number;
   color: string | null;
@@ -37,7 +40,7 @@ export type PublicEvent = {
 
 const COLS = publicSql`
   id, title, description, start_at as "startAt", end_at as "endAt", all_day as "allDay",
-  location, online_url as "onlineUrl", registration_url as "registrationUrl", status, sequence,
+  location, online_url as "onlineUrl", registration_url as "registrationUrl", embed_url as "embedUrl", featured, status, sequence,
   color, audience, published_at as "publishedAt", cancelled_at as "cancelledAt",
   created_at as "createdAt", updated_at as "updatedAt",
   category_name as "categoryName", category_kind as "categoryKind", category_color as "categoryColor",
@@ -86,6 +89,8 @@ export function serializePublicEvent(e: PublicEvent) {
     location: e.location,
     onlineUrl: e.onlineUrl,
     registrationUrl: e.registrationUrl,
+    embedUrl: isAllowedEmbed(e.embedUrl) ? e.embedUrl : "",
+    featured: e.featured,
     status: e.status,
     category: { name: e.categoryName, kind: e.categoryKind, color: e.color ?? e.categoryColor, icon: e.categoryIcon },
     speaker: e.speakerName

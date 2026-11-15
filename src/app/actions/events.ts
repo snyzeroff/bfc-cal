@@ -3,6 +3,8 @@
 import { z } from "zod";
 import { AVAILABILITY, EVENT_STATUSES } from "@/db/schema";
 import { run } from "@/lib/action";
+import { parseEmbed } from "@/lib/embed";
+import { AppError } from "@/lib/errors";
 import { requireActor } from "@/lib/auth/session";
 import {
   addAttachment,
@@ -46,12 +48,20 @@ const formSchema = z.object({
   location: z.string().max(200).default(""),
   onlineUrl: z.string().max(500).default(""),
   registrationUrl: z.string().max(500).default(""),
+  embed: z.string().max(4000).default(""),
+  featured: z.boolean().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullable().default(null),
   audience: z.array(z.string().max(60)).max(30).default([]),
   organizerIds: z.array(id).max(30).optional(),
   scheduledPublishAt: wall.nullable().default(null),
 });
 export type EventFormInput = z.input<typeof formSchema>;
+
+function embedOf(input: string): string {
+  const res = parseEmbed(input);
+  if (!res.ok) throw new AppError("invalid", res.error);
+  return res.url;
+}
 
 function toPatch(f: z.output<typeof formSchema>): EventPatch {
   let startAt: Date | null = null;
@@ -80,6 +90,8 @@ function toPatch(f: z.output<typeof formSchema>): EventPatch {
     location: f.location.trim(),
     onlineUrl: safeUrl(f.onlineUrl),
     registrationUrl: safeUrl(f.registrationUrl),
+    embedUrl: embedOf(f.embed),
+    featured: f.featured,
     color: f.color,
     audience: f.audience,
     organizerIds: f.organizerIds,

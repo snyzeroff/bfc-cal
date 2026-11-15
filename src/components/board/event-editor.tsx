@@ -10,6 +10,7 @@ import { Avatar, Button, Callout, ColorField, Dialog, Field, Input, Menu, MenuIt
 import type { EventStatus } from "@/db/schema";
 import type { BoardCategory, BoardLayer, BoardSpeakerLite, BoardUser, BoardWindow, EventDetail } from "@/lib/board-types";
 import { cn } from "@/lib/cn";
+import { parseEmbed } from "@/lib/embed";
 import { formatDateTime, wallToInstant } from "@/lib/time";
 import { useBoard, useMutate } from "./context";
 import { DatesPanel } from "./dates-panel";
@@ -53,7 +54,8 @@ function Stepper({ status }: { status: EventStatus }) {
   );
 }
 
-type FormState = Required<Pick<EventFormInput, "title" | "description" | "internalNotes" | "categoryId" | "location" | "onlineUrl" | "registrationUrl">> & {
+type FormState = Required<Pick<EventFormInput, "title" | "description" | "internalNotes" | "categoryId" | "location" | "onlineUrl" | "registrationUrl" | "embed">> & {
+  featured: boolean;
   speakerId: string;
   date: string;
   endDate: string;
@@ -85,6 +87,8 @@ const initialForm = (d: EventDetail): FormState => {
     location: e.location,
     onlineUrl: e.onlineUrl,
     registrationUrl: e.registrationUrl,
+    embed: e.embedUrl,
+    featured: e.featured,
     color: e.customColor,
     audience: e.audience,
     organizerIds: e.organizerIds,
@@ -165,6 +169,7 @@ export function EventEditor({
       },
     );
 
+  const embedPreview = useMemo(() => parseEmbed(form.embed), [form.embed]);
   const preview = useMemo(() => {
     const speaker = speakers.find((s) => s.id === form.speakerId);
     const start = form.date ? wallToInstant(`${form.date}T${form.allDay ? "00:00" : form.startTime}`) : new Date();
@@ -179,12 +184,14 @@ export function EventEditor({
       location: form.location,
       onlineUrl: form.onlineUrl,
       registrationUrl: form.registrationUrl,
+      embedUrl: embedPreview.ok ? embedPreview.url : "",
+      featured: form.featured,
       status: e.isPublic ? e.status : ("published" as EventStatus),
       category: { name: category?.name ?? e.categoryName, kind, color: form.color ?? category?.color ?? e.color, icon: category?.icon ?? "calendar" },
       speaker: speaker ? { name: speaker.name, organization: speaker.organization, position: form.speakerId === e.speakerId ? (e.speakerPosition ?? "") : "", bio: form.speakerId === e.speakerId ? (e.speakerBio ?? "") : "" } : null,
       updatedAt: e.updatedAt,
     };
-  }, [form, speakers, category, kind, e]);
+  }, [form, speakers, category, kind, e, embedPreview]);
 
   const canPublish = me.isAdmin && !!e.start && ["confirmed", "postponed", "cancelled", "completed"].includes(e.status) && !e.archived;
 
@@ -364,6 +371,17 @@ export function EventEditor({
                 <Field label="Registration link" optional>
                   <Input value={form.registrationUrl} onChange={(ev) => set("registrationUrl", ev.target.value)} placeholder="https://" inputMode="url" />
                 </Field>
+                <Field
+                  label="Luma registration widget"
+                  optional
+                  error={embedPreview.ok ? undefined : embedPreview.error}
+                  hint={embedPreview.ok && embedPreview.url ? `Will embed ${embedPreview.url}` : "Paste the embed code from Luma (Event → Share → Embed). Members can then register without leaving the site; it replaces the registration button."}
+                >
+                  <Textarea value={form.embed} onChange={(ev) => set("embed", ev.target.value)} rows={2} className="min-h-[60px] font-mono text-xs" placeholder={'<iframe src="https://luma.com/embed/event/evt-…/simple" …></iframe>'} spellCheck={false} />
+                </Field>
+                {me.isAdmin && (
+                  <Switch checked={form.featured} onCheckedChange={(v) => set("featured", v)} disabled={readOnly} label="Feature at the top of the members site" description="While it is published and upcoming, this event takes the headline spot on the home page instead of the next event by date." />
+                )}
               </fieldset>
             </Section>
 

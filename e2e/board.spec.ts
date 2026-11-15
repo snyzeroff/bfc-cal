@@ -225,3 +225,32 @@ test("calendar: drag an event to another day, then undo", async ({ page }) => {
   await expect(page.getByText("Move undone")).toBeVisible();
   await expect(page.locator(`.fc-daygrid-day[data-date="${fromDay}"]`).getByText("Seeded private conference")).toBeVisible();
 });
+
+test("Luma widget: paste the embed code, feature the event, and it heads the members site", async ({ page }) => {
+  await login(page, "admin");
+  await page.goto("/board/events");
+  await page.getByRole("link", { name: /Seeded public conference/ }).first().click();
+
+  // Anything that is not a Luma embed is refused before saving.
+  const widget = page.getByLabel("Luma registration widget");
+  await widget.fill('<iframe src="https://evil.example/embed/event/evt-1/simple"></iframe>');
+  await expect(page.getByText("Only Luma registration widgets (luma.com) can be embedded.")).toBeVisible();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Only Luma registration widgets (luma.com) can be embedded.").last()).toBeVisible();
+
+  await widget.fill('<iframe src="https://luma.com/embed/event/evt-5TKn85pTxdeOPPi/simple" width="600" height="450" frameborder="0" allow="fullscreen; payment"></iframe>');
+  await expect(page.getByText("Will embed https://luma.com/embed/event/evt-5TKn85pTxdeOPPi/simple")).toBeVisible();
+  await page.getByRole("switch", { name: "Feature at the top of the members site" }).click();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Changes saved")).toBeVisible();
+
+  // Members see the widget at the top of the home page and on the event page, in a sandboxed frame.
+  await page.context().clearCookies();
+  await page.goto("/");
+  const frame = page.locator('iframe[title="Registration — Seeded public conference"]');
+  await expect(frame).toHaveAttribute("src", "https://luma.com/embed/event/evt-5TKn85pTxdeOPPi/simple");
+  await expect(frame).toHaveAttribute("sandbox", /allow-scripts/);
+  await expect(page.getByText(/Featured · Conference/)).toBeVisible();
+  await page.getByRole("link", { name: "Details" }).click();
+  await expect(page.locator("iframe[src^='https://luma.com/embed/event/']")).toHaveCount(1);
+});

@@ -1,5 +1,6 @@
 import { CalendarDays, ExternalLink, MapPin, Mic2, Video } from "lucide-react";
 import { CategoryIcon } from "@/components/category-icon";
+import { EventEmbed } from "@/components/event-embed";
 import { cn } from "@/lib/cn";
 import type { PublicEventJson } from "@/lib/public";
 import { formatRange } from "@/lib/time";
@@ -50,7 +51,14 @@ export function PublicEventView({ event, compact }: { event: PublicEventJson; co
         </Fact>
       </dl>
 
-      {event.registrationUrl && !cancelled && event.status !== "completed" && (
+      {event.embedUrl && !cancelled && event.status !== "completed" && (
+        <section aria-label="Registration">
+          <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">Register</h2>
+          <EventEmbed url={event.embedUrl} title={event.title} className="max-w-[600px]" />
+        </section>
+      )}
+
+      {event.registrationUrl && !event.embedUrl && !cancelled && event.status !== "completed" && (
         <a href={event.registrationUrl} target="_blank" rel="noopener noreferrer" className="inline-flex h-11 items-center justify-center gap-2 self-start rounded-lg bg-brand px-5 text-sm font-medium text-on-brand shadow-sm transition-colors hover:bg-brand-deep">
           Register <ExternalLink className="h-4 w-4" />
         </a>

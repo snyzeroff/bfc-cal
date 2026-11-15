@@ -127,6 +127,8 @@ export type EventDetail = {
     internalNotes: string;
     onlineUrl: string;
     registrationUrl: string;
+    embedUrl: string;
+    featured: boolean;
     customColor: string | null;
     categoryColor: string;
     publishedAt: string | null;

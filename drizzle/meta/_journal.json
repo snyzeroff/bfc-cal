@@ -15,6 +15,20 @@
       "when": 1794746333617,
       "tag": "0001_public_view",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794752647682,
+      "tag": "0002_event_embed",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794752648581,
+      "tag": "0003_public_view_embed",
+      "breakpoints": true
     }
   ]
 }

@@ -178,6 +178,8 @@ export async function loadEventDetail(user: SessionUser, id: string): Promise<Ev
       internalNotes: row.e.internalNotes,
       onlineUrl: row.e.onlineUrl,
       registrationUrl: row.e.registrationUrl,
+      embedUrl: row.e.embedUrl,
+      featured: row.e.featured,
       customColor: row.e.color,
       categoryColor: row.catColor,
       publishedAt: row.e.publishedAt?.toISOString() ?? null,

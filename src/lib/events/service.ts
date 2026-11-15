@@ -67,6 +67,8 @@ export type EventPatch = Partial<
     | "location"
     | "onlineUrl"
     | "registrationUrl"
+    | "embedUrl"
+    | "featured"
     | "color"
     | "audience"
     | "scheduledPublishAt"
@@ -198,6 +200,8 @@ export async function createEvent(actor: ActorUser, input: CreateInput, opts: Mu
         location: input.location ?? template?.data.location ?? "",
         onlineUrl: input.onlineUrl ?? "",
         registrationUrl: input.registrationUrl ?? "",
+        embedUrl: input.embedUrl ?? "",
+        featured: canPublish(actor) ? (input.featured ?? false) : false,
         color: input.color ?? null,
         audience: input.audience ?? [],
         overrideReason: override,
@@ -285,6 +289,9 @@ export async function updateEvent(
   }
   if (ev.isPublic && !next.startAt) {
     throw new AppError("invalid", "A published event needs a date. Unpublish it first.");
+  }
+  if (fields.featured !== undefined && fields.featured !== ev.featured && !canPublish(actor)) {
+    throw new AppError("forbidden", "Only a Board Admin can feature an event at the top of the members site.");
   }
   if (fields.scheduledPublishAt && !canPublish(actor)) {
     throw new AppError("forbidden", "Only a Board Admin can schedule publication.");
