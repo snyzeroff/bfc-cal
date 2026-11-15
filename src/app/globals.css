@@ -338,9 +338,26 @@ a, button, [role="button"], input, select, textarea, summary {
 .fc .fc-daygrid-day-frame {
   min-height: calc(112px * var(--density));
 }
+/* Weekends: no classes, so no conferences — shown, but clearly set back. */
 .fc .fc-daygrid-day.fc-day-sat,
-.fc .fc-daygrid-day.fc-day-sun {
-  background: color-mix(in oklab, var(--surface-2) 55%, transparent);
+.fc .fc-daygrid-day.fc-day-sun,
+.fc .fc-timegrid-col.fc-day-sat,
+.fc .fc-timegrid-col.fc-day-sun {
+  background: var(--surface-2);
+}
+.fc .fc-day-sat .fc-daygrid-day-number,
+.fc .fc-day-sun .fc-daygrid-day-number,
+.fc .fc-col-header-cell.fc-day-sat .fc-col-header-cell-cushion,
+.fc .fc-col-header-cell.fc-day-sun .fc-col-header-cell-cushion {
+  color: var(--ink-3);
+}
+.fc .fc-col-header-cell.fc-day-sat,
+.fc .fc-col-header-cell.fc-day-sun {
+  background: var(--surface-2);
+}
+.fc .fc-day-today.fc-day-sat .fc-daygrid-day-number,
+.fc .fc-day-today.fc-day-sun .fc-daygrid-day-number {
+  color: var(--on-brand);
 }
 .fc .fc-daygrid-event {
   margin: 1px 4px 0;
@@ -509,11 +526,21 @@ a, button, [role="button"], input, select, textarea, summary {
   ) !important;
 }
 .bg-soft-rule {
+  background-color: color-mix(in oklab, var(--warn) 4%, transparent) !important;
   background-image: repeating-linear-gradient(
     135deg,
-    color-mix(in oklab, var(--warn) 20%, transparent) 0 4px,
-    transparent 4px 10px
+    color-mix(in oklab, var(--warn) 14%, transparent) 0 3px,
+    transparent 3px 11px
   ) !important;
+}
+.bg-soft-rule .bg-label {
+  --c: var(--warn);
+  max-width: calc(100% - 12px);
+  right: auto;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--surface) 90%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--warn) 25%, transparent);
 }
 .bg-academic {
   background: color-mix(in oklab, var(--c, var(--info)) 15%, transparent) !important;

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import ICAL from "ical.js";
 import { buildCalendar, escapeText, foldLine, formatUtc } from "@/lib/ics";
 import { canEditEvent, canOverrideRestriction, canPublish } from "@/lib/permissions";
-import { computeWindows, findViolations, victorialesWindow, type RuleInput } from "@/lib/restrictions";
+import { computeWindows, findViolations, mergeWindows, subtractSpans, victorialesWindow, type RuleInput } from "@/lib/restrictions";
 import { assessDay, suggestSlots, type AssistantInput } from "@/lib/scheduling";
 import { addDays, diffDays, eventDays, formatRange, instantToWall, parisDay, parisToInstant, wallToInstant } from "@/lib/time";
 
@@ -78,6 +78,25 @@ describe("restriction engine", () => {
     expect(windows).toHaveLength(1);
     expect(findViolations(windows, "conference", "2026-09-05", "2026-09-07")).toHaveLength(1);
     expect(findViolations(windows, "conference", "2026-09-12", "2026-09-13")).toHaveLength(0);
+  });
+});
+
+describe("display helpers for restricted periods", () => {
+  it("merges overlapping and adjacent windows into one span", () => {
+    const m = mergeWindows([
+      { start: "2027-05-12", end: "2027-06-04", title: "A" },
+      { start: "2027-05-20", end: "2027-06-11", title: "B" },
+      { start: "2027-06-12", end: "2027-06-14", title: "C" },
+      { start: "2027-07-01", end: "2027-07-02", title: "D" },
+    ]);
+    expect(m.map((x) => [x.start, x.end, x.titles.length])).toEqual([["2027-05-12", "2027-06-14", 3], ["2027-07-01", "2027-07-02", 1]]);
+  });
+  it("cuts a soft span around the days a hard restriction already covers", () => {
+    const hard = [{ start: "2026-12-23", end: "2027-01-15" }];
+    expect(subtractSpans({ start: "2026-12-21", end: "2026-12-25" }, hard)).toEqual([{ start: "2026-12-21", end: "2026-12-22" }]);
+    expect(subtractSpans({ start: "2026-12-24", end: "2026-12-25" }, hard)).toEqual([]);
+    expect(subtractSpans({ start: "2026-12-01", end: "2027-02-01" }, hard)).toEqual([{ start: "2026-12-01", end: "2026-12-22" }, { start: "2027-01-16", end: "2027-02-01" }]);
+    expect(subtractSpans({ start: "2027-03-01", end: "2027-03-02" }, hard)).toEqual([{ start: "2027-03-01", end: "2027-03-02" }]);
   });
 });
 

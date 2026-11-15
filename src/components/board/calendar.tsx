@@ -16,7 +16,7 @@ import { EVENT_STATUSES, type EventStatus } from "@/db/schema";
 import { statusColor, statusLabel } from "@/lib/appearance";
 import { ACADEMIC_KIND_META, KIND_GROUPS, type BoardEvent, type CalendarData } from "@/lib/board-types";
 import { cn } from "@/lib/cn";
-import { mergeWindows } from "@/lib/restrictions";
+import { mergeWindows, subtractSpans } from "@/lib/restrictions";
 import { addDays, formatIsoDay, formatIsoRange, instantToWall } from "@/lib/time";
 import { useBoard, useMutate } from "./context";
 import { EventSheet, formatWallRange } from "./event-sheet";
@@ -159,12 +159,18 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
       if (!v.date) continue;
       out.push({ id: `v:${v.id}`, title: v.label, start: v.date, end: addDays(v.endDate ?? v.date, 1), allDay: true, editable: false, extendedProps: { type: "victoriales", order: 0 } });
     }
-    // Overlapping hard restrictions are drawn once, as one span, instead of stacking.
-    for (const m of mergeWindows(windows.filter((w) => w.severity === "hard"))) {
+    // Overlapping restrictions are drawn once, as one span, instead of stacking.
+    const hard = mergeWindows(windows.filter((w) => w.severity === "hard"));
+    for (const m of hard) {
       out.push({ id: `w:${m.key}`, title: m.label, start: m.start, end: addDays(m.end, 1), allDay: true, display: "background", classNames: ["bg-restricted"], extendedProps: { type: "window", label: m.label, detail: m.titles.join("\n") } });
     }
-    for (const w of windows.filter((w) => w.severity === "soft")) {
-      out.push({ id: `w:${w.key}`, title: w.title, start: w.start, end: addDays(w.end, 1), allDay: true, display: "background", classNames: ["bg-soft-rule"], extendedProps: { type: "window", label: w.title, detail: w.message } });
+    // Soft warnings: merged too, and only drawn on days a hard restriction does not already cover.
+    for (const m of mergeWindows(windows.filter((w) => w.severity === "soft"))) {
+      const kinds = [...new Set(m.titles.map((t) => t.split(" — ")[0]))];
+      const label = kinds.slice(0, 3).join(" · ") + (kinds.length > 3 ? "…" : "");
+      for (const part of subtractSpans(m, hard)) {
+        out.push({ id: `s:${m.key}:${part.start}`, title: label, start: part.start, end: addDays(part.end, 1), allDay: true, display: "background", classNames: ["bg-soft-rule"], extendedProps: { type: "window", label, detail: m.titles.join("\n") } });
+      }
     }
     return out;
   }, [events, proposals, show.tasks, data.tasks, data.layers, data.victoriales, academic, windows, eventIds, appearance, me.isAdmin]);
@@ -478,6 +484,7 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm bg-brand/20 shadow-[inset_3px_0_0_var(--brand)]" /> Confirmed</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm border border-dashed border-brand/60" /> Tentative / proposed</span>
         <span className="inline-flex items-center gap-1.5"><Globe className="h-3 w-3" /> Public</span>
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm bg-surface-3 ring-1 ring-line" /> Weekend (no classes)</span>
         {show.restrictions && <span className="inline-flex items-center gap-1.5"><span className="hatch-danger h-3 w-5 rounded-sm ring-1 ring-danger/40" /> Restricted (no conferences)</span>}
         {visibleLayers.map((l) => (
           <span key={l.id} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: l.color }} /> {l.name}</span>

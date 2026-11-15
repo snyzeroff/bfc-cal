@@ -166,3 +166,17 @@ export function mergeWindows(windows: { start: string; end: string; title: strin
   }
   return out;
 }
+
+/** Parts of `span` not covered by any of `covers` (inclusive ISO days; `covers` sorted and non-overlapping). */
+export function subtractSpans(span: { start: string; end: string }, covers: { start: string; end: string }[]): { start: string; end: string }[] {
+  const out: { start: string; end: string }[] = [];
+  let cursor = span.start;
+  for (const c of covers) {
+    if (c.end < cursor || c.start > span.end) continue;
+    if (c.start > cursor) out.push({ start: cursor, end: addDays(c.start, -1) });
+    cursor = addDays(c.end, 1);
+    if (cursor > span.end) break;
+  }
+  if (cursor <= span.end) out.push({ start: cursor, end: span.end });
+  return out;
+}
