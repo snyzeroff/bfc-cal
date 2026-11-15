@@ -127,7 +127,7 @@ export function SpeakerDirectory({
           footer={
             <div className="flex w-full flex-wrap items-center gap-2">
               {current && me.isAdmin && (
-                <Button variant="ghost" size="icon" title={current.archived ? "Restore" : "Archive"} aria-label={current.archived ? "Restore" : "Archive"} onClick={() => mutate(() => archiveSpeakerAction(current.id, !current.archived), { success: current.archived ? "Speaker restored" : "Speaker archived", onOk: () => setEditing(null) })}>
+                <Button variant="ghost" size="icon" title={current.archived ? "Restore" : "Archive"} aria-label={current.archived ? "Restore" : "Archive"} onClick={() => (current.archived || confirm(`Archive ${current.name}? They will no longer be offered when creating events. You can restore them from the Archived filter.`)) && mutate(() => archiveSpeakerAction(current.id, !current.archived), { success: current.archived ? "Speaker restored" : "Speaker archived", onOk: () => setEditing(null) })}>
                   {current.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
                 </Button>
               )}

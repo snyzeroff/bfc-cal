@@ -340,7 +340,7 @@ function CategoriesTab({ categories }: { categories: BoardCategory[] }) {
             <Badge>{KIND_LABEL[c.kind]}</Badge>
             {c.archived && <Badge tone="warn">Archived</Badge>}
             <Button size="icon" variant="ghost" aria-label={`Edit ${c.name}`} onClick={() => setForm({ id: c.id, name: c.name, kind: c.kind, color: c.color, icon: c.icon })}><Pencil className="h-3.5 w-3.5" /></Button>
-            <Button size="sm" variant="ghost" onClick={() => mutate(() => archiveCategoryAction(c.id, !c.archived), { success: c.archived ? "Category restored" : "Category archived — existing events keep it" })}>{c.archived ? "Restore" : "Archive"}</Button>
+            <Button size="sm" variant="ghost" onClick={() => (c.archived || confirm(`Archive the category “${c.name}”? Existing events keep it, but it can no longer be chosen for new ones.`)) && mutate(() => archiveCategoryAction(c.id, !c.archived), { success: c.archived ? "Category restored" : "Category archived — existing events keep it" })}>{c.archived ? "Restore" : "Archive"}</Button>
           </div>
         ))}
       </Card>

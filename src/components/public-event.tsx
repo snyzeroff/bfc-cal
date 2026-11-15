@@ -1,6 +1,7 @@
 import { CalendarDays, ExternalLink, MapPin, Mic2, Video } from "lucide-react";
 import { CategoryIcon } from "@/components/category-icon";
 import { EventEmbed } from "@/components/event-embed";
+import { RichText } from "@/components/rich-text";
 import { cn } from "@/lib/cn";
 import type { PublicEventJson } from "@/lib/public";
 import { formatRange } from "@/lib/time";
@@ -65,7 +66,7 @@ export function PublicEventView({ event, compact }: { event: PublicEventJson; co
       )}
 
       {event.description && (
-        <div className={cn("max-w-prose whitespace-pre-line leading-relaxed text-ink-2", compact ? "text-[13px]" : "text-[15px]")}>{event.description}</div>
+        <div className={cn("max-w-prose whitespace-pre-line leading-relaxed text-ink-2", compact ? "text-[13px]" : "text-[15px]")}><RichText text={event.description} /></div>
       )}
 
       {event.speaker?.bio && (
@@ -73,7 +74,7 @@ export function PublicEventView({ event, compact }: { event: PublicEventJson; co
           <h2 className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">
             <Mic2 className="h-3.5 w-3.5" /> About the speaker
           </h2>
-          <p className="mt-2 max-w-prose whitespace-pre-line text-[13px] leading-relaxed text-ink-2">{event.speaker.bio}</p>
+          <p className="mt-2 max-w-prose whitespace-pre-line text-[13px] leading-relaxed text-ink-2"><RichText text={event.speaker.bio} /></p>
         </section>
       )}
     </article>

@@ -225,6 +225,7 @@ export function EventEditor({
                 <MenuItem
                   icon={e.archived ? <ArchiveRestore /> : <Archive />}
                   onSelect={() =>
+                    (e.archived || confirm(`Archive “${e.title}”?${e.isPublic ? " It will also be removed from the members calendar." : ""} You can restore it later from Conferences → Archived.`)) &&
                     mutate(() => archiveEventAction(e.id, !e.archived), {
                       success: e.archived ? "Restored" : "Archived",
                       undo: () => mutate(() => archiveEventAction(e.id, e.archived), { success: "Undone" }),

@@ -25,7 +25,7 @@ export default async function globalSetup() {
   const [{ id: cat }] = await db`select id from categories where name = 'Conference'`;
   const [{ id: admin }] = await db`select id from users where email = ${USERS.admin.email}`;
   await db`insert into events (title, description, internal_notes, category_id, status, is_public, published_at, start_at, end_at, location, created_by)
-           values ('Seeded public conference', 'Open to everyone.', 'E2E-PRIVATE-NOTE', ${cat}, 'published', true, now(), now() + interval '20 days', now() + interval '20 days 90 minutes', 'Amphi E2E', ${admin})`;
+           values ('Seeded public conference', 'Open to everyone. Register ↗️ now.', 'E2E-PRIVATE-NOTE', ${cat}, 'published', true, now(), now() + interval '20 days', now() + interval '20 days 90 minutes', 'Amphi E2E', ${admin})`;
   await db`insert into events (title, internal_notes, category_id, status, start_at, end_at, created_by)
            values ('Seeded private conference', 'E2E-PRIVATE-NOTE', ${cat}, 'confirmed', now() + interval '25 days', now() + interval '25 days 90 minutes', ${admin})`;
   await db.end();

@@ -265,4 +265,8 @@ test("Luma widget: paste the embed code, feature the event, and it heads the mem
   await expect(page.getByText(/Featured · Conference/)).toBeVisible();
   await page.getByRole("link", { name: "Details" }).click();
   await expect(page.locator("iframe[src^='https://luma.com/embed/event/']")).toHaveCount(1);
+  // Every widget gets our own link to the Luma page, with a drawn arrow instead of an emoji.
+  const luma = page.getByRole("link", { name: "Open the full event page on Luma" });
+  await expect(luma).toHaveAttribute("href", "https://luma.com/event/evt-5TKn85pTxdeOPPi");
+  await expect(luma.locator("svg")).toHaveCount(1);
 });

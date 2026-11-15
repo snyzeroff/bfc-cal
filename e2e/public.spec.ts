@@ -17,7 +17,11 @@ test.describe("members (no account)", () => {
     await page.getByRole("link", { name: /Seeded public conference/ }).first().click();
     await expect(page.getByRole("heading", { level: 1, name: "Seeded public conference" })).toBeVisible();
     await expect(page.getByText("Amphi E2E")).toBeVisible();
-    await expect(page.getByText("Open to everyone.")).toBeVisible();
+    // Arrow emoji typed in a description are drawn as icons, not left as emoji.
+    const description = page.getByText(/Open to everyone\. Register/);
+    await expect(description).toBeVisible();
+    await expect(description.locator("svg")).toHaveCount(1);
+    await expect(description).not.toContainText("↗");
     await expect(page.locator("body")).not.toContainText("E2E-PRIVATE-NOTE");
   });
 

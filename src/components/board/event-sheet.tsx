@@ -67,6 +67,7 @@ export function EventSheet({
                 aria-label="Archive"
                 title="Archive"
                 onClick={() =>
+                  confirm(`Archive “${event.title}”?${event.isPublic ? " It will also be removed from the members calendar." : ""} You can restore it later from Conferences → Archived.`) &&
                   mutate(() => archiveEventAction(event.id, true), {
                     success: "Archived",
                     onOk: onClose,
