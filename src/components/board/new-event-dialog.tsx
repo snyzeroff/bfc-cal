@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, ShieldAlert, Trash2, TriangleAlert } from "lucide-react";
 import { createEventAction } from "@/app/actions/events";
@@ -46,16 +46,7 @@ const plusMinutes = (time: string, minutes: number) => {
   return `${String(Math.floor(t / 60)).padStart(2, "0")}:${String(t % 60).padStart(2, "0")}`;
 };
 
-export function NewEventDialog({
-  open,
-  onOpenChange,
-  categories,
-  speakers,
-  windows,
-  templates,
-  initial,
-  stayOnPage,
-}: {
+type NewEventDialogProps = {
   open: boolean;
   onOpenChange: (o: boolean) => void;
   categories: BoardCategory[];
@@ -65,29 +56,33 @@ export function NewEventDialog({
   initial?: { date?: string; start?: string; end?: string; allDay?: boolean; speakerId?: string };
   /** Calendar: keep the user where they are instead of opening the event page. */
   stayOnPage?: boolean;
-}) {
+};
+
+/** Mounted only while open, so every opening starts from a clean form. */
+export function NewEventDialog(props: NewEventDialogProps) {
+  return props.open ? <NewEventForm {...props} /> : null;
+}
+
+function NewEventForm({
+  open,
+  onOpenChange,
+  categories,
+  speakers,
+  windows,
+  templates,
+  initial,
+  stayOnPage,
+}: NewEventDialogProps) {
   const router = useRouter();
   const { mutate, busy, dialog } = useMutate();
   const usable = categories.filter((c) => !c.archived);
   const [title, setTitle] = useState("");
   const [categoryId, setCategoryId] = useState(usable[0]?.id ?? "");
   const [templateId, setTemplateId] = useState("");
-  const [speakerId, setSpeakerId] = useState("");
-  const [mode, setMode] = useState<Mode>("none");
-  const [allDay, setAllDay] = useState(false);
-  const [rows, setRows] = useState<Row[]>([{ date: "", start: "18:30", end: "20:00" }]);
-
-  useEffect(() => {
-    if (!open) return;
-    setTitle("");
-    setTemplateId("");
-    setSpeakerId(initial?.speakerId ?? "");
-    setCategoryId(usable[0]?.id ?? "");
-    setAllDay(initial?.allDay ?? false);
-    setMode(initial?.date ? "set" : "none");
-    setRows([{ date: initial?.date ?? "", start: initial?.start ?? "18:30", end: initial?.end ?? "20:00" }]);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  const [speakerId, setSpeakerId] = useState(initial?.speakerId ?? "");
+  const [mode, setMode] = useState<Mode>(initial?.date ? "set" : "none");
+  const [allDay, setAllDay] = useState(initial?.allDay ?? false);
+  const [rows, setRows] = useState<Row[]>([{ date: initial?.date ?? "", start: initial?.start ?? "18:30", end: initial?.end ?? "20:00" }]);
 
   const category = usable.find((c) => c.id === categoryId);
   const kind = category?.kind ?? "other";

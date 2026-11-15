@@ -11,6 +11,7 @@ function norm(label: string): string {
 }
 
 const TEACHING_WEEK = /\bs\s?\d\s*w\s?\d{1,2}\b/; // "S1 W4", "S2 W10", "WW & S1 W1"
+const BARE_SEMESTER = /^s\s?\d\s?\??$/; // "S2", "S2?" — a teaching week whose number is clipped in the PDF
 const WELCOME_WEEK = /(^|[^a-z])ww($|[^a-z])/; // "WW", "WW & W1 class"
 const MIDTERM = /\bmid[\s-]?terms?\b/;
 const READING = /\breading\s+days?\b/;
@@ -23,7 +24,7 @@ const SPORT_SESSION = /^(sport|eps)\b\.?\s*(\d+\b|.*\by\s?\d\b)/;
 
 /** Named school activities seen on the CentraleSupélec calendars, plus generic activity words. */
 const SCHOOL_EVENT =
-  /\b(coding weeks?|robotics|bootcamp|modell?ing weeks?|innov|business games?|organi[sz]ational behaviou?r|beprepared|be prepared|coupe|sports tour|tour cotiz|dinner|gala|forum|cohesion|learning expedition|climate day|career|workshop|welcome|orientation|integration|hackathon|project|seminar|conference|ceremony|graduation|weeks?|days?|games?)\b/;
+  /\b(coding weeks?|robotics|bootcamp|modell?ing weeks?|innov|business games?|organi[sz]ational behaviou?r|beprepared|be prepared|coupe|sports tour|t sports|tour cotiz|dinner|gala|forum|cohesion|learning expedition|climate day|career|workshop|welcome|orientation|integration|hackathon|project|seminar|conference|ceremony|graduation|weeks?|days?|games?)\b/;
 
 /**
  * Map a calendar cell label to an academic kind. Pure; never throws.
@@ -33,7 +34,7 @@ const SCHOOL_EVENT =
 export function classifyLabel(label: string): AcademicKind {
   const s = norm(label);
   if (!s) return "other";
-  if (TEACHING_WEEK.test(s) || WELCOME_WEEK.test(s)) return "teaching";
+  if (TEACHING_WEEK.test(s) || WELCOME_WEEK.test(s) || BARE_SEMESTER.test(s)) return "teaching";
   if (MIDTERM.test(s)) return "midterm";
   if (READING.test(s)) return "reading";
   if (EXAM.test(s)) return "exam";

@@ -62,17 +62,20 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
   const [ready, setReady] = useState(false);
 
   /* ---- preferences (per browser) ---- */
+  // Preferences live in localStorage, which the server cannot see: the first render uses the
+  // defaults (so it matches the server HTML) and the stored values are applied right after.
   useEffect(() => {
-    const p = loadPrefs();
-    const mobile = matchMedia("(max-width: 640px)").matches;
-    setIsMobile(mobile);
-    if (p.view) setView(p.view);
-    else if (mobile && appearance.defaultView !== "agenda") setView("month");
-    if (p.layers) setLayersOn(p.layers.filter((id) => data.layers.some((l) => l.id === id)));
-    if (p.groups) setGroups(p.groups);
-    if (p.show) setShow((s) => ({ ...s, ...p.show }));
-    setReady(true);
     const mq = matchMedia("(max-width: 640px)");
+    const restore = () => {
+      const p = loadPrefs();
+      setIsMobile(mq.matches);
+      if (p.view) setView(p.view);
+      if (p.layers) setLayersOn(p.layers.filter((id) => data.layers.some((l) => l.id === id)));
+      if (p.groups) setGroups(p.groups);
+      if (p.show) setShow((s) => ({ ...s, ...p.show }));
+      setReady(true);
+    };
+    restore();
     const on = () => setIsMobile(mq.matches);
     mq.addEventListener("change", on);
     return () => mq.removeEventListener("change", on);

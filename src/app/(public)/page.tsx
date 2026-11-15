@@ -4,13 +4,13 @@ import { MembersCalendar } from "@/components/members-calendar";
 import { publishDueEvents } from "@/lib/events/service";
 import { listPublicEvents, serializePublicEvent } from "@/lib/public";
 import { getSetting } from "@/lib/settings";
-import { formatRange, todayParis } from "@/lib/time";
+import { formatRange, nowMs, todayParis } from "@/lib/time";
 
 export default async function HomePage() {
   await publishDueEvents().catch(() => 0);
   const [appearance, events] = await Promise.all([getSetting("appearance"), listPublicEvents()]);
   const list = events.map(serializePublicEvent);
-  const now = Date.now();
+  const now = nowMs();
   const next = list.find((e) => new Date(e.end).getTime() >= now && e.status === "published");
   return (
     <div className="flex flex-col gap-10">

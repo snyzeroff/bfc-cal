@@ -1,34 +1,40 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { Menu, MenuItem } from "./ui";
 
 type Pref = "light" | "dark" | "system";
 
+const listeners = new Set<() => void>();
+const readPref = (): Pref => (document.cookie.match(/(?:^|; )bfc_theme=(light|dark|system)/)?.[1] as Pref | undefined) ?? "system";
+const subscribe = (fn: () => void) => {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+};
+
 function apply(pref: Pref) {
   const t = pref === "system" ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : pref;
   document.documentElement.dataset.theme = t;
+}
+
+function choose(pref: Pref) {
   document.cookie = `bfc_theme=${pref}; path=/; max-age=31536000; samesite=lax`;
+  apply(pref);
+  listeners.forEach((fn) => fn());
 }
 
 export function ThemeToggle({ className }: { className?: string }) {
-  const [pref, setPref] = useState<Pref>("system");
+  // The preference lives in a cookie; the server render assumes "system".
+  const pref = useSyncExternalStore(subscribe, readPref, () => "system" as Pref);
+
   useEffect(() => {
-    const m = document.cookie.match(/(?:^|; )bfc_theme=(light|dark|system)/);
-    if (m) setPref(m[1] as Pref);
     const mq = matchMedia("(prefers-color-scheme: dark)");
-    const onChange = () => {
-      const cur = document.cookie.match(/(?:^|; )bfc_theme=(light|dark|system)/)?.[1] ?? "system";
-      if (cur === "system") apply("system");
-    };
+    const onChange = () => readPref() === "system" && apply("system");
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
-  const choose = (p: Pref) => {
-    setPref(p);
-    apply(p);
-  };
+
   const Icon = pref === "dark" ? Moon : pref === "light" ? Sun : Monitor;
   return (
     <Menu

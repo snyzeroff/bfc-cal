@@ -286,14 +286,14 @@ export async function parseAcademicPdf(data: Uint8Array, filename: string): Prom
   }
   const pdfjs = await loadPdfJs();
   let doc: import("pdfjs-dist/legacy/build/pdf.mjs").PDFDocumentProxy;
+  const loadingTask = pdfjs.getDocument({
+    data: new Uint8Array(data), // pdf.js takes ownership of the buffer: hand it a copy
+    useSystemFonts: false,
+    disableFontFace: true,
+    verbosity: 0,
+  });
   try {
-    doc = await pdfjs.getDocument({
-      data: new Uint8Array(data), // pdf.js takes ownership of the buffer: hand it a copy
-      useSystemFonts: false,
-      disableFontFace: true,
-      isEvalSupported: false,
-      verbosity: 0,
-    }).promise;
+    doc = await loadingTask.promise;
   } catch (err) {
     throw new Error(`"${filename}" could not be read as a PDF: ${err instanceof Error ? err.message : String(err)}`);
   }
@@ -326,7 +326,7 @@ export async function parseAcademicPdf(data: Uint8Array, filename: string): Prom
     );
     return result;
   } finally {
-    await doc.destroy().catch(() => undefined);
+    await loadingTask.destroy().catch(() => undefined);
   }
 }
 
@@ -626,6 +626,10 @@ function parsePage(pd: PageData, pageNo: number, filename: string, warnings: str
 
   const ROWS = 31;
   const candidates: ParsedCandidate[] = [];
+  /** Fill colour of the cell each candidate came from (used to join unlabelled continuation cells). */
+  const colorOf = new Map<ParsedCandidate, string | null>();
+  /** Coloured weekday cells without any text that touch the first or last day of a month. */
+  const orphans: { start: string; end: string; color: string; layerKeys: string[] }[] = [];
   const usedText = new Set<TextRun>();
 
   for (const block of blocks) {
@@ -682,6 +686,30 @@ function parsePage(pd: PageData, pageNo: number, filename: string, warnings: str
       if (!regionTexts.has(id)) regionTexts.set(id, []);
       regionTexts.get(id)!.push(t);
     }
+
+    // A period that crosses a month boundary is printed as two cells, and only one of them
+    // carries the label (e.g. Mon 30 Nov is coloured, "S1 W9" is written in December).
+    regions.forEach((region, id) => {
+      if (regionTexts.has(id)) return;
+      const rs = region.cells.map((c) => c[0]);
+      const cs = [...new Set(region.cells.map((c) => c[1]))];
+      const r0 = Math.min(...rs);
+      const r1 = Math.min(Math.max(...rs), block.days - 1);
+      const color = fill[r0][region.cells[rs.indexOf(r0)][1]];
+      if (!color || r0 >= block.days || cs.length !== 1) return;
+      if (r0 !== 0 && r1 !== block.days - 1) return;
+      const role = block.columns[cs[0]].role;
+      if (role.type === "sport") return;
+      const start = iso(block.year, block.month, r0 + 1);
+      const end = iso(block.year, block.month, r1 + 1);
+      // Weekend rows are tinted too: only weekday-only cells can be a continuation.
+      for (let d = start; ; d = nextDay(d)) {
+        const wd = new Date(`${d}T00:00:00Z`).getUTCDay();
+        if (wd === 0 || wd === 6) return;
+        if (d === end) break;
+      }
+      orphans.push({ start, end, color, layerKeys: role.type === "layers" ? [...role.keys] : allKeys() });
+    });
 
     for (const [id, runs] of [...regionTexts.entries()].sort((a, b) => a[0] - b[0])) {
       const cells = regions[id].cells;
@@ -821,7 +849,7 @@ function parsePage(pd: PageData, pageNo: number, filename: string, warnings: str
       const startDate = iso(block.year, block.month, r0 + 1);
       const endDate = iso(block.year, block.month, endRow + 1);
       for (const key of layerKeys) {
-        candidates.push({
+        const candidate: ParsedCandidate = {
           layerKey: key,
           layerName: layers.get(key)?.name ?? key,
           label,
@@ -831,8 +859,36 @@ function parsePage(pd: PageData, pageNo: number, filename: string, warnings: str
           confidence,
           issues: [...issues],
           source: { page: pageNo, bbox, text: sourceText },
-        });
+        };
+        colorOf.set(candidate, color);
+        candidates.push(candidate);
       }
+    }
+  }
+
+  // Attach unlabelled continuation cells to the labelled cell they continue.
+  for (const o of orphans) {
+    for (const key of o.layerKeys) {
+      const after = candidates.find((c) => c.layerKey === key && colorOf.get(c) === o.color && c.startDate === nextDay(o.end));
+      const before = candidates.find((c) => c.layerKey === key && colorOf.get(c) === o.color && nextDay(c.endDate) === o.start);
+      const target = after ?? before;
+      if (!target || (after && before)) continue; // ambiguous: leave it to the reviewer
+      if (after) target.startDate = o.start;
+      else target.endDate = o.end;
+      target.confidence = Math.min(target.confidence, 85);
+      const note = "Extended across the month boundary to include an unlabelled cell of the same colour";
+      if (!target.issues.includes(note)) target.issues.push(note);
+    }
+  }
+
+  // A span that begins or ends on a weekend is unusual for anything but a break: ask the reviewer to look.
+  for (const c of candidates) {
+    if (c.kind === "vacation" || c.kind === "internship" || c.kind === "sport") continue;
+    const wd = (d: string) => new Date(`${d}T00:00:00Z`).getUTCDay();
+    const weekendEdge = [wd(c.startDate), wd(c.endDate)].some((d) => d === 0 || d === 6);
+    if (weekendEdge) {
+      c.confidence = Math.min(c.confidence, 75);
+      c.issues.push("Starts or ends on a weekend in the document — please confirm against the original");
     }
   }
 

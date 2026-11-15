@@ -1,36 +1,87 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# BFC Calendar
 
-## Getting Started
+Conference planning and public events calendar for the **Bachelor Finance Club** (CentraleSupélec).
 
-First, run the development server:
+- **Board workspace** (private): plan conferences from idea to publication, hold tentative dates while a speaker decides, track speakers and tasks, and see academic constraints and the Victoriales restriction on one calendar.
+- **Members calendar** (public): only events a Board Admin has explicitly published.
+- **Live subscriptions**: two real iCalendar feeds (public and per-user private) that calendar apps refresh by themselves.
+
+| | |
+|---|---|
+| Stack | Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · PostgreSQL · Drizzle ORM · FullCalendar 6 |
+| Time zone | Europe/Paris everywhere in the UI; instants stored in UTC |
+| Tests | Vitest (unit + integration on a real Postgres) · Playwright (end-to-end) |
+
+## Quick start
+
+Requires Node.js ≥ 20.9 and PostgreSQL ≥ 14.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env.local        # set DATABASE_URL and the first admin's credentials
+npm run db:migrate                # create the schema
+npm run db:seed                   # reference data + first Super Admin (idempotent)
+npm run dev                       # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`npm run db:demo` additionally creates sample people, speakers and events (never academic dates or a Victoriales date — those must come from an imported calendar and an administrator).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Sign in at `/login` with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`, then:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Settings → Scheduling rules**: enter the Victoriales date. Until then the 21-day restriction cannot be enforced, and the app says so.
+2. **Academic → Import calendar**: upload the official year calendar PDF, review the extracted periods, approve them.
+3. **Settings → People & roles**: invite the rest of the board (you get a one-time link to send them).
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Command | What it does |
+|---|---|
+| `npm run dev` / `build` / `start` | Development server / production build / production server |
+| `npm run db:migrate` | Apply SQL migrations from `drizzle/` |
+| `npm run db:generate` | Generate a migration after editing `src/db/schema.ts` |
+| `npm run db:seed` / `db:demo` | Reference data and first admin / plus demo content |
+| `npm run db:public-role -- <password>` | Create the restricted database role for public reads (see `docs/SECURITY.md`) |
+| `npm run typecheck` / `lint` | Static checks |
+| `npm test` | Unit and integration tests (needs a database, see below) |
+| `npm run test:e2e` | Playwright end-to-end tests (builds the app, uses its own database) |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Running the tests
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+createdb bfc_test && createdb bfc_e2e          # once
+npm test                                       # TEST_DATABASE_URL defaults to postgres://bfc:bfc@localhost:5432/bfc_test
+npm run test:e2e                               # E2E_DATABASE_URL defaults to …/bfc_e2e
+```
 
-## Deploy on Vercel
+Both suites wipe and re-migrate their database, and refuse to run against a database whose name does not contain `test` or `e2e`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Documentation
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — decisions, data model, permission model, calendar synchronisation
+- [`docs/SECURITY.md`](docs/SECURITY.md) — threat model, what is enforced where, hardening checklist
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) — Vercel / Netlify + managed Postgres, environment variables, cron
+- [`docs/USER-GUIDE.md`](docs/USER-GUIDE.md) — how the board uses it day to day
+- [`docs/MAINTENANCE.md`](docs/MAINTENANCE.md) — yearly rollover, backups, upgrades
+- [`docs/PROGRESS.md`](docs/PROGRESS.md) — implementation checklist, test status and known limitations
+
+## Project layout
+
+```
+drizzle/                 SQL migrations (0001 creates the public_events view)
+scripts/                 migrate, seed, public-role
+src/db/schema.ts         database schema (single source of truth)
+src/lib/                 domain logic — pure where possible
+  time.ts                Europe/Paris ↔ UTC, calendar-day arithmetic
+  restrictions.ts        restriction engine (Victoriales, date ranges, academic kinds)
+  scheduling.ts          scheduling assistant (pure)
+  ics.ts                 RFC 5545 writer
+  feeds.ts               public + private feed builders, token management
+  public.ts              read model for unauthenticated visitors (public_events view only)
+  permissions.ts         role matrix
+  events/service.ts      every event mutation: permissions, restrictions, versioning, audit
+  academic/              PDF / ICS / CSV extraction and the review workflow
+src/app/                 routes: (public) pages, /board workspace, /feeds, /api, server actions
+src/components/          UI kit (ui.tsx) and board components
+tests/                   unit + integration tests
+e2e/                     Playwright specs
+```

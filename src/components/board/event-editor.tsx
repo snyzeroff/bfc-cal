@@ -120,13 +120,17 @@ export function EventEditor({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const dirty = JSON.stringify(form) !== baseline;
 
-  // When the server sends a newer version (after a save or someone else's change), adopt it unless there are unsaved edits.
-  useEffect(() => {
-    const next = initialForm(detail);
-    if (!dirty) setForm(next);
-    setBaseline((b) => (dirty ? b : JSON.stringify(next)));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [e.version]);
+  // When the server sends a newer version (after a save or someone else's change), adopt it
+  // unless there are unsaved edits. Adjusted during render, as React recommends for derived state.
+  const [seenVersion, setSeenVersion] = useState(e.version);
+  if (seenVersion !== e.version) {
+    setSeenVersion(e.version);
+    if (!dirty) {
+      const next = initialForm(detail);
+      setForm(next);
+      setBaseline(JSON.stringify(next));
+    }
+  }
 
   useEffect(() => {
     if (!dirty) return;

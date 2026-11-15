@@ -31,6 +31,9 @@ export function parisParts(instant: Date): { date: string; time: string; weekday
 /** Paris calendar day (YYYY-MM-DD) of an instant. */
 export const parisDay = (instant: Date) => parisParts(instant).date;
 
+/** Current instant in ms (kept here so render code stays free of direct clock reads). */
+export const nowMs = (): number => Date.now();
+
 export function todayParis(): string {
   return parisDay(new Date());
 }
