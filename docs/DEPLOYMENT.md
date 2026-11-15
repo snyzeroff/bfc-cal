@@ -47,7 +47,7 @@ Things to know about Neon's free plan:
 
 1. Import the Git repository in Vercel (framework: Next.js, no settings to change).
 2. Add the environment variables above (Production and Preview).
-3. Deploy. Every push to the production branch redeploys automatically.
+3. Deploy. Every push to the production branch redeploys automatically. `vercel.json` runs the server in Frankfurt (`fra1`): create the Neon database in the same region so pages are not slowed by transatlantic queries.
 4. Scheduled publication works without cron (due events are published the next time the public calendar or feed is requested). For exact timing add `vercel.json`:
 
 ```json
