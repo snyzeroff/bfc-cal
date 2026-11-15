@@ -16,6 +16,7 @@ import { EVENT_STATUSES, type EventStatus } from "@/db/schema";
 import { statusColor, statusLabel } from "@/lib/appearance";
 import { ACADEMIC_KIND_META, KIND_GROUPS, type BoardEvent, type CalendarData } from "@/lib/board-types";
 import { cn } from "@/lib/cn";
+import { mergeWindows } from "@/lib/restrictions";
 import { addDays, formatIsoDay, formatIsoRange, instantToWall } from "@/lib/time";
 import { useBoard, useMutate } from "./context";
 import { EventSheet, formatWallRange } from "./event-sheet";
@@ -158,8 +159,12 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
       if (!v.date) continue;
       out.push({ id: `v:${v.id}`, title: v.label, start: v.date, end: addDays(v.endDate ?? v.date, 1), allDay: true, editable: false, extendedProps: { type: "victoriales", order: 0 } });
     }
-    for (const w of windows) {
-      out.push({ id: `w:${w.key}`, title: w.title, start: w.start, end: addDays(w.end, 1), allDay: true, display: "background", classNames: [w.severity === "hard" ? "bg-restricted" : "bg-soft-rule"], extendedProps: { type: "window", w } });
+    // Overlapping hard restrictions are drawn once, as one span, instead of stacking.
+    for (const m of mergeWindows(windows.filter((w) => w.severity === "hard"))) {
+      out.push({ id: `w:${m.key}`, title: m.label, start: m.start, end: addDays(m.end, 1), allDay: true, display: "background", classNames: ["bg-restricted"], extendedProps: { type: "window", label: m.label, detail: m.titles.join("\n") } });
+    }
+    for (const w of windows.filter((w) => w.severity === "soft")) {
+      out.push({ id: `w:${w.key}`, title: w.title, start: w.start, end: addDays(w.end, 1), allDay: true, display: "background", classNames: ["bg-soft-rule"], extendedProps: { type: "window", label: w.title, detail: w.message } });
     }
     return out;
   }, [events, proposals, show.tasks, data.tasks, data.layers, data.victoriales, academic, windows, eventIds, appearance, me.isAdmin]);
@@ -214,7 +219,7 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
       const x = arg.event.extendedProps;
       const block = arg.view.type.startsWith("timeGrid") && !arg.event.allDay;
       const time = arg.event.allDay || !arg.event.start ? "" : arg.event.start.toISOString().slice(11, 16);
-      if (x.type === "window") return <span className="bg-label">{x.w.title}</span>;
+      if (x.type === "window") return <span className="bg-label" title={x.detail}>{x.label}</span>;
       if (x.type === "academic") {
         const meta = ACADEMIC_KIND_META[x.a.kind as keyof typeof ACADEMIC_KIND_META];
         return (
@@ -416,7 +421,7 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
           <div className="flex max-h-[70dvh] flex-col gap-4 overflow-y-auto pr-1 scroll-thin">
             <div className="flex flex-col gap-2.5">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">Planning</p>
-              <Switch checked={show.restrictions} onCheckedChange={(v) => setShow((s) => ({ ...s, restrictions: v }))} label="Restricted periods" description={`Hard rules, incl. the 21 days before exams (${hardCount} period${hardCount === 1 ? "" : "s"})`} />
+              <Switch checked={show.restrictions} onCheckedChange={(v) => setShow((s) => ({ ...s, restrictions: v }))} label="Restricted periods" description={`Hard rules, incl. exams and the 21 days before (${hardCount} period${hardCount === 1 ? "" : "s"})`} />
               <Switch checked={show.soft} onCheckedChange={(v) => setShow((s) => ({ ...s, soft: v }))} label="Soft warnings" description="Periods that warn but do not block" />
               <Switch checked={show.proposals} onCheckedChange={(v) => setShow((s) => ({ ...s, proposals: v }))} label="Proposed dates" description="Tentative holds awaiting an answer" />
               <Switch checked={show.tasks} onCheckedChange={(v) => setShow((s) => ({ ...s, tasks: v }))} label="Task deadlines" />
@@ -462,7 +467,7 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-warn/30 bg-warn-soft px-3.5 py-2.5 text-[13px]">
           <ShieldAlert className="h-4 w-4 shrink-0 text-warn" />
           <span className="min-w-0 flex-1">
-            <strong className="font-medium">No exam dates are approved yet.</strong> The rule “no conference in the 21 days before exams” cannot be enforced until the academic calendars are imported and approved.
+            <strong className="font-medium">No exam dates are approved yet.</strong> The rule “no conference during exams or in the 21 days before” cannot be enforced until the academic calendars are imported and approved.
           </span>
           {me.isAdmin && <Button size="sm" variant="outline" onClick={() => router.push("/board/academic")}>Import calendars</Button>}
         </div>

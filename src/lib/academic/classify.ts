@@ -35,6 +35,8 @@ export function classifyLabel(label: string): AcademicKind {
   const s = norm(label);
   if (!s) return "other";
   if (TEACHING_WEEK.test(s) || WELCOME_WEEK.test(s) || BARE_SEMESTER.test(s)) return "teaching";
+  // "Retake Sport. 12:00-13:00" is a sport session to catch up, not an exam session.
+  if (/\bretakes?\s+(sport|eps)\b/.test(s)) return "sport";
   if (MIDTERM.test(s)) return "midterm";
   if (READING.test(s)) return "reading";
   if (EXAM.test(s)) return "exam";

@@ -81,15 +81,15 @@ function RulesTab({ rules, layers, affected }: { rules: Rule[]; layers: { key: s
   return (
     <div className="flex flex-col gap-10 pb-10">
       <section>
-        <h2 className="flex items-center gap-2 text-sm font-semibold"><ShieldAlert className="h-4 w-4 text-danger" /> Before exams</h2>
+        <h2 className="flex items-center gap-2 text-sm font-semibold"><ShieldAlert className="h-4 w-4 text-danger" /> Exams</h2>
         <p className="mb-4 mt-1 max-w-2xl text-[13px] text-ink-3">
-          No BFC conference may be scheduled during the days immediately before an exam session. The restricted periods are calculated from the exam dates approved in <Link href="/board/academic" className="underline underline-offset-2">Academic calendars</Link>, for every program, and move by themselves if those dates change. Internal board meetings are not affected.
+          No BFC conference may be scheduled during an exam session or in the days immediately before it. The restricted periods are calculated from the exam dates approved in <Link href="/board/academic" className="underline underline-offset-2">Academic calendars</Link>, for every program, and move by themselves if those dates change. Internal board meetings are not affected.
         </p>
         <Card className="flex flex-col gap-4 p-4">
-          <Field label="Days closed before each exam session" hint="Calendar days, ending the day before the first exam.">
+          <Field label="Days closed before each exam session" hint="Calendar days before the first exam. The exam days themselves are always closed too.">
             <Input type="number" min={1} max={60} value={exam.daysBefore} onChange={(e) => setExam({ ...exam, daysBefore: Number(e.target.value) })} className="max-w-[120px]" />
           </Field>
-          <Switch checked={exam.midterms} onCheckedChange={(v) => setExam({ ...exam, midterms: v })} label="Also apply before midterms" description="Off: only periods marked as exams (including retakes) count." />
+          <Switch checked={exam.midterms} onCheckedChange={(v) => setExam({ ...exam, midterms: v })} label="Also apply to midterms" description="Off: only periods marked as exams (including retakes) count." />
           <Switch checked={exam.active} onCheckedChange={(v) => setExam({ ...exam, active: v })} label="Enforce this rule" description="Leave on. Turning it off removes the block for everyone and is recorded in the audit log." />
           <div className="flex items-center gap-2">
             <Button variant="primary" disabled={!dirty} loading={busy} onClick={() => mutate(() => saveExamRuleAction(exam), { success: "Exam rule saved — restricted periods recalculated", onOk: (d) => setNewlyAffected(d.affected) })}>Save exam rule</Button>

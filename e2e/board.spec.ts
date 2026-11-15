@@ -119,7 +119,7 @@ test("exam rule: the 21 days before an approved exam block conferences; only a S
   await dialog.getByRole("button", { name: "Create event" }).click();
   const blocked = page.getByRole("dialog", { name: "This date is restricted" });
   await expect(blocked).toBeVisible();
-  await expect(blocked.getByText(/21 days before Exams/).first()).toBeVisible();
+  await expect(blocked.getByText(/the 21 days before/).first()).toBeVisible();
   await expect(blocked.getByRole("button", { name: /Override/ })).toHaveCount(0);
   await blocked.getByRole("button", { name: "Choose another date" }).click();
 

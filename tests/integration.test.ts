@@ -320,8 +320,8 @@ describe("tentative dates", () => {
   });
 });
 
-describe("no conference in the 21 days before exams", () => {
-  // Exams 13–15 Jan 2027 → restricted 23 Dec 2026 – 12 Jan 2027.
+describe("no conference during exams or in the 21 days before", () => {
+  // Exams 13–15 Jan 2027 → restricted 23 Dec 2026 – 15 Jan 2027 (the exam days included).
   beforeEach(() => addAcademic("boe-y1", "Exams", "exam", "2027-01-13", "2027-01-15"));
   const mk = (actor: ActorUser, day: string, cat?: string, o: Parameters<typeof createEvent>[2] = {}) =>
     code(createEvent(actor, { title: day, categoryId: cat ?? conf.id, status: "tentative", startAt: at(day, "18:30"), endAt: at(day, "20:00") }, o));
@@ -330,6 +330,8 @@ describe("no conference in the 21 days before exams", () => {
     expect(await mk(member, "2026-12-22")).toBe("ok");
     expect(await mk(member, "2026-12-23")).toBe("restricted");
     expect(await mk(admin, "2027-01-12")).toBe("restricted");
+    expect(await mk(member, "2027-01-13")).toBe("restricted"); // first exam day
+    expect(await mk(admin, "2027-01-15")).toBe("restricted"); // last exam day
     expect(await mk(member, "2027-01-18")).toBe("ok");
     expect(await mk(member, "2027-01-05", meeting.id)).toBe("ok"); // board meetings are exempt
   });
@@ -337,7 +339,7 @@ describe("no conference in the 21 days before exams", () => {
   it("explains the reason with the exam it protects", async () => {
     const err = await createEvent(member, { title: "x", categoryId: conf.id, startAt: at("2027-01-05", "18:30"), endAt: at("2027-01-05", "20:00") }).catch((e) => e as AppError);
     expect((err as AppError).code).toBe("restricted");
-    expect((err as AppError).message).toMatch(/21 days before Exams for BOE-Y1/);
+    expect((err as AppError).message).toMatch(/during Exams for BOE-Y1 .* or during the 21 days before/);
   });
 
   it("uses only approved exam dates: an unverified period or a midterm does not block", async () => {
@@ -369,7 +371,7 @@ describe("no conference in the 21 days before exams", () => {
     expect(await db.select().from(s.auditLog).where(eq(s.auditLog.action, "restriction.override"))).toHaveLength(1);
     const ev = await confirmed("Planned early", "2027-05-20");
     expect((await findRestrictedEvents()).map((f) => f.event.id)).not.toContain(ev.id);
-    await addAcademic("boe-y1", "EXAMS", "exam", "2027-06-02", "2027-06-04"); // restricted 12 May – 1 June
+    await addAcademic("boe-y1", "EXAMS", "exam", "2027-06-02", "2027-06-04"); // restricted 12 May – 4 June
     expect((await findRestrictedEvents()).map((f) => f.event.id)).toContain(ev.id);
   });
 

@@ -6,6 +6,7 @@ import { TaskList } from "@/components/board/task-list";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
 import { requireUser } from "@/lib/auth/session";
 import { countPendingCandidates, loadCalendarData } from "@/lib/board-data";
+import { mergeWindows } from "@/lib/restrictions";
 import { diffDays, formatIsoDay, formatIsoRange, formatRange, relativeDays, wallToInstant } from "@/lib/time";
 
 export const metadata = { title: "Overview" };
@@ -21,7 +22,7 @@ export default async function Dashboard() {
   const overdue = data.tasks.filter((t) => !t.done && t.dueDate && t.dueDate < today);
   const violating = data.events.filter((e) => e.violation && !e.overrideReason);
   const readyToPublish = data.events.filter((e) => e.status === "confirmed" && !e.isPublic && e.kind === "conference" && e.start && e.start.slice(0, 10) >= today);
-  const upcomingWindows = data.windows.filter((w) => w.severity === "hard" && w.end >= today).slice(0, 4);
+  const upcomingWindows = mergeWindows(data.windows.filter((w) => w.severity === "hard" && w.end >= today)).slice(0, 4);
   const hasExams = data.academic.some((a) => a.kind === "exam");
 
   const attention: { key: string; icon: React.ReactNode; tone: string; text: React.ReactNode; href: string }[] = [
@@ -125,7 +126,7 @@ export default async function Dashboard() {
                     return (
                       <li key={w.key} className={active ? "hatch-danger px-4 py-3" : "px-4 py-3"}>
                         <p className="flex items-center gap-2 text-[13px] font-semibold text-danger"><ShieldAlert className="h-4 w-4 shrink-0" /> {formatIsoRange(w.start, w.end)}</p>
-                        <p className="mt-0.5 text-xs text-ink-2">{w.title}{active ? ` — in effect, ${diffDays(today, w.end) + 1} day(s) left` : ` — starts ${relativeDays(w.start, today)}`}</p>
+                        <p className="mt-0.5 text-xs text-ink-2" title={w.titles.join("\n")}>{w.titles.length === 1 ? w.titles[0] : `${w.titles.length} restrictions: ${w.titles[0].replace(/^No conferences — /, "")}…`}{active ? ` — in effect, ${diffDays(today, w.end) + 1} day(s) left` : ` — starts ${relativeDays(w.start, today)}`}</p>
                       </li>
                     );
                   })}
@@ -138,7 +139,7 @@ export default async function Dashboard() {
                       "No restricted period ahead."
                     ) : (
                       <>
-                        <span className="font-medium text-ink">No exam dates approved yet.</span> Conferences are closed during the 21 days before exams; this needs the academic calendars.
+                        <span className="font-medium text-ink">No exam dates approved yet.</span> Conferences are closed during exams and the 21 days before; this needs the academic calendars.
                         {user.role !== "board_member" && <Link href="/board/academic" className="ml-1 text-brand-ink underline underline-offset-2">Import them</Link>}
                       </>
                     )}

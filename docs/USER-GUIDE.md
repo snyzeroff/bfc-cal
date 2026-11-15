@@ -27,9 +27,9 @@ A Board Admin can also switch on **Feature at the top of the members site**: whi
 
 ## The exam rule
 
-No conference can be scheduled in the 21 days before an exam session. The restricted periods are computed from the exam dates approved in **Academic** (for every program) and are shown in red on the board calendar and on the dashboard. If you try to use one of those dates you get an explanation and the action is refused. Board meetings are not affected.
+No conference can be scheduled during an exam session or in the 21 days before it. The restricted periods are computed from the exam dates approved in **Academic** (for every program) and are shown in red on the board calendar and on the dashboard. If you try to use one of those dates you get an explanation and the action is refused. Board meetings are not affected.
 
-A Super Admin can record an exception: it requires a written reason, which is stored on the event and in the audit log. The number of days, and whether midterms count too, are set in **Settings → Scheduling rules → Before exams**.
+A Super Admin can record an exception: it requires a written reason, which is stored on the event and in the audit log. The number of days, and whether midterms count too, are set in **Settings → Scheduling rules → Exams**.
 
 If exam dates are corrected or added later, the periods move automatically and any conference already inside a restricted period is flagged for attention.
 

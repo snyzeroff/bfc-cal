@@ -22,7 +22,7 @@ const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 
 /* -------------------------------------------------------------- exam rule */
 
-/** The built-in rule: no conference in the N days before each approved exam session. */
+/** The built-in rule: no conference during each approved exam session nor in the N days before it. */
 export async function saveExamRuleAction(input: { daysBefore: number; midterms: boolean; active: boolean }) {
   return run(async () => {
     const actor = await requireActor("super_admin");
@@ -81,7 +81,7 @@ export async function saveRuleAction(ruleId: string | null, input: RuleInput) {
     if (ruleId) {
       const [cur] = await db.select().from(restrictionRules).where(eq(restrictionRules.id, id.parse(ruleId)));
       if (!cur) throw new AppError("not_found", "This rule no longer exists.");
-      if (cur.builtin) throw new AppError("invalid", "The exam rule is built in. Change it in the “Before exams” section.");
+      if (cur.builtin) throw new AppError("invalid", "The exam rule is built in. Change it in the “Exams” section.");
       await db.update(restrictionRules).set(values).where(eq(restrictionRules.id, cur.id));
       await audit({ actor, action: "rule.update", entityType: "rule", entityId: cur.id, summary: `Updated scheduling rule “${r.name}”`, changes: diff(cur as unknown as Record<string, unknown>, values, ["updatedAt"]) });
       return { id: cur.id };

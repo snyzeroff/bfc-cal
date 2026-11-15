@@ -94,15 +94,15 @@ export function computeWindows(
         if (!kinds.includes(e.kind)) continue;
         if (layers.length && !layers.includes(e.layerKey)) continue;
         if (before > 0) {
-          // The N calendar days immediately preceding the period (e.g. revision time before exams).
-          const w = { start: addDays(e.startDate, -before), end: addDays(e.startDate, -1) };
+          // The N calendar days immediately preceding the period (revision time) and the period itself.
+          const w = { start: addDays(e.startDate, -before), end: e.endDate };
           out.push({
             ...base,
             ...w,
-            title: `No conferences — ${before} days before ${e.label} (${e.layerName})`,
+            title: `No conferences — ${e.label} and the ${before} days before (${e.layerName})`,
             message:
               rule.message ||
-              `No BFC conference may be scheduled during the ${before} days before ${e.label} for ${e.layerName} (${formatIsoRange(e.startDate, e.endDate)}). Restricted period: ${formatIsoRange(w.start, w.end)}.`,
+              `No BFC conference may be scheduled during ${e.label} for ${e.layerName} (${formatIsoRange(e.startDate, e.endDate)}) or during the ${before} days before. Restricted period: ${formatIsoRange(w.start, w.end)}.`,
           });
           continue;
         }
@@ -141,3 +141,28 @@ export function findViolations(
 
 export const hardViolations = (v: Violation[]) => v.filter((x) => x.severity === "hard");
 export const softViolations = (v: Violation[]) => v.filter((x) => x.severity === "soft");
+
+export type MergedWindow = { key: string; start: string; end: string; titles: string[]; label: string };
+
+/**
+ * Joins overlapping or adjacent windows into single spans for display, so that
+ * several exam sessions close to each other read as one restricted period.
+ */
+export function mergeWindows(windows: { start: string; end: string; title: string }[]): MergedWindow[] {
+  const out: MergedWindow[] = [];
+  for (const w of [...windows].sort((a, b) => a.start.localeCompare(b.start) || a.end.localeCompare(b.end))) {
+    const last = out[out.length - 1];
+    if (last && w.start <= addDays(last.end, 1)) {
+      if (w.end > last.end) last.end = w.end;
+      if (!last.titles.includes(w.title)) last.titles.push(w.title);
+    } else {
+      out.push({ key: `${w.start}-${w.title}`, start: w.start, end: w.end, titles: [w.title], label: "" });
+    }
+  }
+  for (const m of out) {
+    if (m.titles.length === 1) m.label = m.titles[0];
+    else if (m.titles.every((t) => /days before/.test(t))) m.label = "No conferences — exams and the days before";
+    else m.label = `No conferences — ${m.titles.length} overlapping restrictions`;
+  }
+  return out;
+}

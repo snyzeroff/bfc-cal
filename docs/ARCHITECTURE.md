@@ -69,7 +69,7 @@ Two fields on `events` matter for correctness:
 
 `src/lib/restrictions.ts` is pure. Rules are expanded into concrete date **windows**:
 
-- `academic_kind` — one window per **verified** academic entry of the chosen kinds/layers. With `daysBefore: N` the window is the N calendar days immediately before the entry (`[start − N, start − 1]`): this is the built-in rule **"no conference in the 21 days before exams"** (`kinds: ["exam"]`, optionally midterms). Without it the window is the period itself (used for the default soft warnings).
+- `academic_kind` — one window per **verified** academic entry of the chosen kinds/layers. With `daysBefore: N` the window is the N calendar days immediately before the entry plus the entry itself (`[start − N, end]`): this is the built-in rule **"no conference during exams or in the 21 days before"** (`kinds: ["exam"]`, optionally midterms). Without it the window is the period itself (used for the default soft warnings).
 - `date_range` — fixed dates.
 - `victoriales` — N days before a fixed key date stored in settings. Kept in the engine and tested, but no longer created by default nor exposed in the interface.
 
