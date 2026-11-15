@@ -13,7 +13,7 @@ async function main() {
   if (!password || password.length < 16 || !/^[\w-]+$/.test(password)) {
     throw new Error("Pass a password of at least 16 characters (letters, digits, - and _) as the first argument.");
   }
-  const url = new URL(process.env.DATABASE_URL!);
+  const url = new URL(process.env.DATABASE_URL_UNPOOLED ?? process.env.DATABASE_URL!);
   const sql = postgres(url.toString(), { max: 1, onnotice: () => {} });
   const [{ exists }] = await sql`select exists(select 1 from pg_roles where rolname = 'bfc_public')`;
   await sql.unsafe(`${exists ? "ALTER" : "CREATE"} ROLE bfc_public LOGIN PASSWORD '${password}' NOSUPERUSER NOCREATEDB NOCREATEROLE`);

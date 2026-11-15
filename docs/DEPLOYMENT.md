@@ -2,25 +2,42 @@
 
 The app is a standard Next.js 16 server application with a PostgreSQL database. It runs on any Node.js host; the two easiest options are below. Nothing here incurs cost on the free tiers at club scale.
 
-## 1. Database (any managed Postgres)
+## 1. Database — Neon (recommended)
 
-Create a database with **Neon**, **Supabase** or **Vercel Postgres** and copy its connection string.
+Any managed PostgreSQL works (Supabase, Vercel Postgres, self-hosted). Neon is the simplest fit: it is plain Postgres reached by a connection string, has a free plan, and plugs into Vercel in a few clicks.
 
-- On serverless hosts use the **pooled** connection string (Neon: `-pooler` host; Supabase: port 6543). The client is already configured for transaction poolers.
-- Run the migrations and seed once from your machine (or CI) against that database:
+**With Vercel:** in the Vercel project → *Storage* → *Create Database* → *Neon*. The integration creates the database and sets `DATABASE_URL` (pooled) and `DATABASE_URL_UNPOOLED` (direct) on the project for you.
+
+**Without the integration:** create a project on neon.com, then copy two connection strings from *Connect*:
+
+| Variable | Which string | Used for |
+|---|---|---|
+| `DATABASE_URL` | **Pooled** — hostname contains `-pooler` | the running application |
+| `DATABASE_URL_UNPOOLED` | **Direct** — no `-pooler` | migrations and admin scripts |
+
+Migrations must go through the direct connection: over the pooler they can fail in ways that do not mention pooling. The scripts in this repository pick `DATABASE_URL_UNPOOLED` automatically when it is set.
+
+Schema migrations run **automatically on every deploy** (`vercel-build` / `build:deploy` run `scripts/migrate.ts` before `next build`). Create the first Super Admin once, from your machine:
 
 ```bash
-DATABASE_URL="postgres://…" npm run db:migrate
-DATABASE_URL="postgres://…" SEED_ADMIN_EMAIL="you@…" SEED_ADMIN_PASSWORD="a-long-password" SEED_ADMIN_NAME="Your Name" npm run db:seed
+DATABASE_URL="postgres://…(direct)…" SEED_ADMIN_EMAIL="you@…" SEED_ADMIN_PASSWORD="a-long-password" SEED_ADMIN_NAME="Your Name" npm run db:seed
 ```
 
-- Recommended: `DATABASE_URL="postgres://…" npm run db:public-role -- "<16+ char password>"` and use the printed value as `DATABASE_URL_PUBLIC`.
+Recommended afterwards: `DATABASE_URL="postgres://…(direct)…" npm run db:public-role -- "<16+ char password>"`, then set the printed value as `DATABASE_URL_PUBLIC`, replacing its hostname with the pooled one.
+
+Things to know about Neon's free plan:
+
+- The database **suspends after about 5 minutes without traffic** and wakes on the next request; that first page load takes a second or two longer. Calendar apps refreshing the feed wake it too.
+- If the monthly compute or transfer allowance runs out, the database is suspended until the next period: nothing is deleted, but the site cannot read it. Club-scale usage is far below the limits; check the Neon dashboard if the site ever stops loading.
+- Preview deployments share the production database unless you give them their own Neon branch. Since deploys run migrations, either enable Neon's "branch per preview" option in the Vercel integration or only deploy from the main branch.
+- Point-in-time restore is available from the Neon dashboard if data is damaged.
 
 ## 2. Environment variables
 
 | Variable | Required | Purpose |
 |---|---|---|
 | `DATABASE_URL` | yes | Postgres connection string (pooled on serverless) |
+| `DATABASE_URL_UNPOOLED` | recommended | Direct connection string for migrations (set automatically by Neon's Vercel integration) |
 | `APP_URL` | yes | Public origin, e.g. `https://calendar.bfc.example` — used in subscription URLs and feed links |
 | `DATABASE_URL_PUBLIC` | recommended | Connection string of the restricted `bfc_public` role |
 | `CRON_SECRET` | optional | Bearer secret for `/api/cron/publish` |
@@ -42,7 +59,7 @@ Vercel sends `Authorization: Bearer $CRON_SECRET` automatically when `CRON_SECRE
 ## 3b. Netlify
 
 1. Import the repository; Netlify detects Next.js and uses its Next.js runtime (`@netlify/plugin-nextjs`, added automatically).
-2. Build command `npm run build`, publish directory `.next`.
+2. Build command `npm run build:deploy` (runs migrations, then builds), publish directory `.next`.
 3. Add the same environment variables.
 4. Optional cron: a Netlify Scheduled Function that calls `/api/cron/publish` with the bearer secret.
 
@@ -63,7 +80,7 @@ Health check: `GET /api/health` (200 when the database answers).
 
 ## Migrations on later releases
 
-Run `npm run db:migrate` against production **before** deploying code that needs the new schema. Migrations are plain SQL in `drizzle/` and are applied once each.
+Migrations are plain SQL in `drizzle/`, applied once each, and run automatically at the start of every deploy build. To apply them by hand: `DATABASE_URL="…(direct)…" npm run db:migrate`.
 
 ## Monitoring (optional)
 

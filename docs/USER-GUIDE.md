@@ -19,6 +19,12 @@ Shortcuts: `N` new event · `T` today · `←` `→` navigate · `M` `W` `D` `A`
 6. Fill in the public description, location and registration link, check the **Public preview** tab, then **Publish** (Board Admin). Only now does it appear on the members calendar and in subscriptions.
 7. Later changes (time, room, cancellation) are saved once and propagate to the website and to subscribers' calendars at their next refresh.
 
+## Registration through Luma, and featuring an event
+
+On the event's **Details** tab, under *Public information*, paste the embed code Luma gives you (Luma event → Share → Embed) into **Luma registration widget**. Members can then register directly on the event page. Only Luma widgets are accepted.
+
+A Board Admin can also switch on **Feature at the top of the members site**: while the event is published and upcoming it takes the headline spot of the home page (with its Luma widget if it has one) instead of the next event by date.
+
 ## The Victoriales rule
 
 No conference can be scheduled in the 21 days before the Victoriales. The period is shown in red on the board calendar and on the dashboard. If you try to use one of those dates you get an explanation and the action is refused. Board meetings are not affected.

@@ -8,8 +8,8 @@ _Last updated: 15 November 2026._
 |---|---|
 | `npm run typecheck` | clean |
 | `npm run lint` | clean |
-| `npm test` — unit + integration on a real PostgreSQL 16 | **107 passed** (3 files) |
-| `npm run test:e2e` — Playwright against a production build | **21 passed** (desktop + mobile projects) |
+| `npm test` — unit + integration on a real PostgreSQL 16 | **118 passed** (4 files) |
+| `npm run test:e2e` — Playwright against a production build | **22 passed** (desktop + mobile projects) |
 | Accessibility — axe, WCAG 2.1 A/AA, light and dark, 20 screens | no serious or critical violation (one FullCalendar-internal rule excluded, see limitations) |
 | Feed validity | generated `.ics` parsed by an independent RFC 5545 parser (`ical.js`) in tests |
 
@@ -65,6 +65,7 @@ Not verified, because it needs real accounts/devices: subscribing from actual Ap
 - [x] Members calendar: agenda + month, category filter, event pages, single-event `.ics` export
 - [x] Feeds: public + per-user private (hashed, rotatable, revocable), cancellation retention, refresh hints
 - [x] JSON API of published events (`/api/public/events`)
+- [x] Luma registration widget per event (allow-listed, sandboxed iframe) and a "featured" event at the top of the members site
 
 **Scheduling**
 - [x] Victoriales: editable per edition, 21-day window computed, hard block, Super Admin override with reason + audit
@@ -106,6 +107,7 @@ Not verified, because it needs real accounts/devices: subscribing from actual Ap
 - **web-design-guidelines** (Vercel): rules fetched and applied — skip links, visible focus, `touch-action`, `overscroll-behavior` in dialogs, tab state in the URL, confirmations for destructive actions, `content-visibility` for the long review list, reduced motion, tabular numbers.
 - **vercel-react-best-practices**: parallel data loading, authenticated server actions, `React.cache` for per-request reads, the public month grid loaded on demand.
 - **deploy-to-vercel** (Vercel) and **rune-kit/rune `deploy`**: both read. The rune kit was not installed (it also registers agent hooks); its pre-deploy gate → deploy → verify → report procedure is what `docs/DEPLOYMENT.md` follows.
+- **neon-postgres** (Neon): pooled connection for the app, direct connection for migrations (`DATABASE_URL_UNPOOLED`), migrations run at deploy, free-plan suspend behaviour documented in `docs/DEPLOYMENT.md`. Chosen over the Supabase skill because the app only needs plain Postgres, not Supabase Auth or its client.
 - Next.js 16 bundled documentation (`node_modules/next/dist/docs`) for the changed conventions (`proxy.ts`, caching model, inline theme script).
 
 ## Log
