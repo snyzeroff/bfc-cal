@@ -11,6 +11,7 @@ import {
   text,
   timestamp,
   uuid,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 /* ----------------------------------------------------------------- enums */
@@ -91,7 +92,26 @@ export const users = pgTable("users", {
   role: roleEnum("role").notNull().default("board_member"),
   active: boolean("active").notNull().default(true),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+  /** The shareable invitation link this account was created through, if any. */
+  signupLinkId: uuid("signup_link_id").references((): AnyPgColumn => signupLinks.id, { onDelete: "set null" }),
   ...timestamps,
+});
+
+/**
+ * Shareable invitation links: anyone holding the link can create an account
+ * with `role` until `max_uses` accounts exist. Only the hash of the secret is stored.
+ */
+export const signupLinks = pgTable("signup_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tokenHash: text("token_hash").notNull().unique(),
+  label: text("label").notNull(),
+  role: roleEnum("role").notNull(),
+  maxUses: integer("max_uses").notNull(),
+  uses: integer("uses").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  createdBy: uuid("created_by").references((): AnyPgColumn => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const sessions = pgTable(
@@ -430,7 +450,7 @@ export const restrictionRules = pgTable("restriction_rules", {
   params: jsonb("params").$type<RuleParams>().notNull().default({}),
   message: text("message").notNull().default(""),
   active: boolean("active").notNull().default(true),
-  /** Built-in rules (Victoriales) cannot be deleted. */
+  /** Built-in rules (the exam rule) cannot be deleted. */
   builtin: boolean("builtin").notNull().default(false),
   ...timestamps,
 });
@@ -502,6 +522,7 @@ export const candidatesRelations = relations(importCandidates, ({ one }) => ({
 
 export type User = typeof users.$inferSelect;
 export type Role = User["role"];
+export type SignupLink = typeof signupLinks.$inferSelect;
 export type EventRow = typeof events.$inferSelect;
 export type EventStatus = (typeof EVENT_STATUSES)[number];
 export type CategoryKind = (typeof CATEGORY_KINDS)[number];

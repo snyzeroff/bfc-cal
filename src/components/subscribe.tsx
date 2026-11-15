@@ -54,9 +54,9 @@ export function SubscribeGuide({ url, name, isPrivate }: { url: string; name: st
           <>
             <a href={webcal} className={buttonClass("primary")}>Subscribe in Apple Calendar</a>
             <ol className="mt-4 list-decimal space-y-1 pl-5">
-              <li>Tap the button on your iPhone, iPad or Mac and confirm <em>Subscribe</em>.</li>
+              <li>Tap the button and confirm <em>Subscribe</em>.</li>
               <li>If nothing happens: Calendar → <em>File → New Calendar Subscription…</em> (Mac) or <em>Calendars → Add Calendar → Add Subscription Calendar</em> (iPhone), then paste the address.</li>
-              <li>Set <em>Auto-refresh</em> to “Every hour” for the quickest updates.</li>
+              <li>Set <em>Auto-refresh</em> to “Every hour”.</li>
             </ol>
           </>
         )}
@@ -66,7 +66,6 @@ export function SubscribeGuide({ url, name, isPrivate }: { url: string; name: st
             <ol className="mt-4 list-decimal space-y-1 pl-5">
               <li>Sign in and confirm <em>Add</em>.</li>
               <li>Or: Google Calendar on a computer → <em>Other calendars → + → From URL</em>, paste the address.</li>
-              <li>The calendar then appears in the Google Calendar app on your phone too.</li>
             </ol>
             <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-xs">Google refreshes subscribed calendars on its own schedule — often every 12 to 24 hours — and offers no way to speed it up.</p>
           </>
@@ -81,20 +80,17 @@ export function SubscribeGuide({ url, name, isPrivate }: { url: string; name: st
               <li>Confirm <em>Import</em> on the page that opens.</li>
               <li>Or: Outlook → Calendar → <em>Add calendar → Subscribe from web</em>, paste the address.</li>
             </ol>
-            <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-xs">Outlook usually refreshes subscribed calendars every few hours.</p>
+            <p className="mt-3 rounded-lg bg-warn-soft px-3 py-2 text-xs">Outlook refreshes every few hours.</p>
           </>
         )}
         {app === "Other" && (
           <ol className="list-decimal space-y-1 pl-5">
             <li>Copy the address above.</li>
-            <li>In your calendar app, look for <em>Subscribe</em>, <em>Add by URL</em> or <em>Add internet calendar</em> (not “Import”, which copies the events once and never updates).</li>
-            <li>Paste the address. Any app that supports the iCalendar (.ics) standard works.</li>
+            <li>In your calendar app, look for <em>Subscribe</em>, <em>Add by URL</em> or <em>Add internet calendar</em> (not “Import”, which never updates).</li>
+            <li>Paste the address.</li>
           </ol>
         )}
-        <p className="mt-4 text-xs text-ink-3">
-          The feed itself is always up to date: it is generated at each request. How quickly a change shows on your device depends on how often your calendar app checks it.
-          {isPrivate && " Anyone with this address can read the board calendar — do not share it. If it leaks, rotate it."}
-        </p>
+        {isPrivate && <p className="mt-4 text-xs text-ink-3">Anyone with this address can read the board calendar. Do not share it; rotate it if it leaks.</p>}
       </div>
     </div>
   );

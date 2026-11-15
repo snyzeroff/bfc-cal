@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { loginAction } from "@/app/actions/auth";
+import { authButton, authInput } from "@/components/auth-shell";
 import { Button, Callout, Field, Input } from "@/components/ui";
 
 export function LoginForm({ next }: { next: string }) {
@@ -11,7 +12,7 @@ export function LoginForm({ next }: { next: string }) {
   const [pending, start] = useTransition();
   return (
     <form
-      className="mt-8 flex flex-col gap-4"
+      className="flex flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
@@ -26,12 +27,12 @@ export function LoginForm({ next }: { next: string }) {
     >
       {error && <Callout tone="danger">{error}</Callout>}
       <Field label="Email">
-        <Input name="email" type="email" autoComplete="username" spellCheck={false} required autoFocus placeholder="you@student-cs.fr" className="h-11" />
+        <Input name="email" type="email" autoComplete="username" spellCheck={false} required autoFocus placeholder="you@student-cs.fr" className={authInput} />
       </Field>
       <Field label="Password">
-        <Input name="password" type="password" autoComplete="current-password" required className="h-11" />
+        <Input name="password" type="password" autoComplete="current-password" required className={authInput} />
       </Field>
-      <Button type="submit" variant="primary" size="lg" loading={pending} className="mt-2">
+      <Button type="submit" variant="primary" size="lg" loading={pending} className={authButton}>
         Sign in
       </Button>
     </form>

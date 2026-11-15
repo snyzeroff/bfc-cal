@@ -14,6 +14,7 @@ import { cn } from "@/lib/cn";
 import { ROLE_DESCRIPTION, ROLE_LABEL } from "@/lib/permissions";
 import { formatDateTime, formatIsoRange } from "@/lib/time";
 import { useBoard, useMutate } from "./context";
+import { SignupLinks, type SignupLinkRow } from "./signup-links";
 
 type Rule = { id: string; name: string; type: "victoriales" | "date_range" | "academic_kind"; severity: "hard" | "soft"; appliesTo: string[]; params: { startDate?: string; endDate?: string; kinds?: string[]; layerKeys?: string[]; daysBefore?: number }; message: string; active: boolean; builtin: boolean };
 type UserRow = { id: string; name: string; email: string; role: Role; active: boolean; hasPassword: boolean; lastLoginAt: string | null };
@@ -29,6 +30,7 @@ export function SettingsPanel(props: {
   rules: Rule[];
   categories: BoardCategory[];
   users: UserRow[];
+  signupLinks: SignupLinkRow[];
   audit: AuditRow[];
   layers: { key: string; name: string }[];
   affected: Affected[];
@@ -36,7 +38,7 @@ export function SettingsPanel(props: {
   const [tab, setTab] = useState(props.initialTab && ["rules", "appearance", "categories", "users", "feeds", "audit"].includes(props.initialTab) ? props.initialTab : "rules");
   return (
     <div className="mx-auto max-w-4xl">
-      <PageHeader title="Settings" description="Super Admin area. Every change here is recorded in the audit log." />
+      <PageHeader title="Settings" description="Changes are recorded in the audit log." />
       <Tabs
         value={tab}
         onValueChange={(v) => {
@@ -56,7 +58,7 @@ export function SettingsPanel(props: {
         <TabPanel value="rules"><RulesTab rules={props.rules} layers={props.layers} affected={props.affected} /></TabPanel>
         <TabPanel value="appearance"><AppearanceTab appearance={props.appearance} /></TabPanel>
         <TabPanel value="categories"><CategoriesTab categories={props.categories} /></TabPanel>
-        <TabPanel value="users"><UsersTab users={props.users} /></TabPanel>
+        <TabPanel value="users"><UsersTab users={props.users} signupLinks={props.signupLinks} /></TabPanel>
         <TabPanel value="feeds"><FeedsTab feed={props.feed} /></TabPanel>
         <TabPanel value="audit"><AuditTab audit={props.audit} /></TabPanel>
       </Tabs>
@@ -71,10 +73,9 @@ function RulesTab({ rules, layers, affected }: { rules: Rule[]; layers: { key: s
   const builtin = rules.find((r) => r.builtin);
   const saved = { daysBefore: builtin?.params.daysBefore ?? 21, midterms: (builtin?.params.kinds ?? []).includes("midterm"), active: builtin?.active ?? true };
   const [exam, setExam] = useState(saved);
-  const [newlyAffected, setNewlyAffected] = useState<Affected[] | null>(null);
   const [ruleForm, setRuleForm] = useState<{ id: string | null; form: RuleInput } | null>(null);
   const dirty = JSON.stringify(exam) !== JSON.stringify(saved);
-  const list = newlyAffected ?? affected;
+  const list = affected;
 
   const blankRule: RuleInput = { name: "", type: "date_range", severity: "soft", appliesTo: ["conference"], startDate: null, endDate: null, kinds: [], layerKeys: [], message: "", active: true };
 
@@ -90,9 +91,9 @@ function RulesTab({ rules, layers, affected }: { rules: Rule[]; layers: { key: s
             <Input type="number" min={1} max={60} value={exam.daysBefore} onChange={(e) => setExam({ ...exam, daysBefore: Number(e.target.value) })} className="max-w-[120px]" />
           </Field>
           <Switch checked={exam.midterms} onCheckedChange={(v) => setExam({ ...exam, midterms: v })} label="Also apply to midterms" description="Off: only periods marked as exams (including retakes) count." />
-          <Switch checked={exam.active} onCheckedChange={(v) => setExam({ ...exam, active: v })} label="Enforce this rule" description="Leave on. Turning it off removes the block for everyone and is recorded in the audit log." />
+          <Switch checked={exam.active} onCheckedChange={(v) => setExam({ ...exam, active: v })} label="Enforce this rule" description="Off: nothing is blocked." />
           <div className="flex items-center gap-2">
-            <Button variant="primary" disabled={!dirty} loading={busy} onClick={() => mutate(() => saveExamRuleAction(exam), { success: "Exam rule saved — restricted periods recalculated", onOk: (d) => setNewlyAffected(d.affected) })}>Save exam rule</Button>
+            <Button variant="primary" disabled={!dirty} loading={busy} onClick={() => mutate(() => saveExamRuleAction(exam), { success: "Exam rule saved — restricted periods recalculated" })}>Save exam rule</Button>
             {dirty && <Button variant="ghost" onClick={() => setExam(saved)}>Discard</Button>}
           </div>
         </Card>
@@ -382,7 +383,7 @@ function CategoriesTab({ categories }: { categories: BoardCategory[] }) {
 
 /* ------------------------------------------------------------------ users */
 
-function UsersTab({ users }: { users: UserRow[] }) {
+function UsersTab({ users, signupLinks }: { users: UserRow[]; signupLinks: SignupLinkRow[] }) {
   const { me } = useBoard();
   const { mutate, busy } = useMutate();
   const [inviting, setInviting] = useState(false);
@@ -391,7 +392,7 @@ function UsersTab({ users }: { users: UserRow[] }) {
   return (
     <div className="pb-10">
       <div className="mb-4 flex items-start justify-between gap-4">
-        <p className="max-w-xl text-[13px] text-ink-3">Invite board members and choose what they can do. Deactivating someone signs them out immediately and disables their private calendar subscriptions.</p>
+        <p className="max-w-xl text-[13px] text-ink-3">Deactivating someone signs them out at once.</p>
         <Button variant="primary" onClick={() => setInviting(true)}><UserPlus className="h-4 w-4" /> Invite</Button>
       </div>
       <Card className="divide-y divide-line">
@@ -414,6 +415,7 @@ function UsersTab({ users }: { users: UserRow[] }) {
           </div>
         ))}
       </Card>
+      <SignupLinks links={signupLinks} />
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         {(Object.keys(ROLE_LABEL) as Role[]).map((r) => (
           <div key={r} className="rounded-xl bg-surface-2 p-3.5">
@@ -428,7 +430,7 @@ function UsersTab({ users }: { users: UserRow[] }) {
         onOpenChange={setInviting}
         size="sm"
         title="Invite a board member"
-        description="You will get a one-time link to send them. No email is sent automatically."
+        description="You get a one-time link to send them."
         footer={
           <>
             <Button variant="ghost" onClick={() => setInviting(false)}>Cancel</Button>
@@ -460,10 +462,10 @@ function FeedsTab({ feed }: { feed: { cancelledRetentionDays: number; refreshMin
   const dirty = JSON.stringify(f) !== JSON.stringify(feed);
   return (
     <div className="flex max-w-xl flex-col gap-5 pb-10">
-      <Field label="Keep cancelled events in feeds for (days)" hint="During this time the event stays in the subscription, marked CANCELLED, so every calendar app has a chance to pick up the cancellation. Afterwards it is removed.">
+      <Field label="Keep cancelled events in feeds for (days)" hint="How long a cancelled event stays in the feed, so calendar apps pick up the cancellation.">
         <Input type="number" min={0} max={365} value={f.cancelledRetentionDays} onChange={(e) => setF({ ...f, cancelledRetentionDays: Number(e.target.value) })} className="max-w-[120px]" />
       </Field>
-      <Field label="Suggested refresh interval (minutes)" hint="A hint included in the feed. Apple Calendar tends to respect it; Google Calendar and Outlook use their own schedule.">
+      <Field label="Suggested refresh interval (minutes)" hint="A hint only: Google Calendar and Outlook keep their own schedule.">
         <Input type="number" min={15} max={1440} step={15} value={f.refreshMinutes} onChange={(e) => setF({ ...f, refreshMinutes: Number(e.target.value) })} className="max-w-[120px]" />
       </Field>
       <Button variant="primary" className="self-start" disabled={!dirty} loading={busy} onClick={() => mutate(() => saveFeedSettingsAction(f), { success: "Feed settings saved" })}>Save feed settings</Button>

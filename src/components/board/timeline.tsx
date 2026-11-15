@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 import { ShieldAlert } from "lucide-react";
-import { ACADEMIC_KIND_META, type BoardAcademic, type BoardEvent, type BoardLayer, type BoardProposal, type BoardVictoriales, type BoardWindow } from "@/lib/board-types";
+import { ACADEMIC_KIND_META, type BoardAcademic, type BoardEvent, type BoardLayer, type BoardProposal, type BoardWindow } from "@/lib/board-types";
 import { cn } from "@/lib/cn";
 import { addDays, diffDays, eachDay, formatIsoRange, weekdayOf } from "@/lib/time";
 
@@ -42,7 +42,6 @@ export function Timeline({
   layers,
   academic,
   windows,
-  victoriales,
   events,
   proposals,
   onOpenEvent,
@@ -55,7 +54,6 @@ export function Timeline({
   layers: BoardLayer[];
   academic: BoardAcademic[];
   windows: BoardWindow[];
-  victoriales: BoardVictoriales[];
   events: BoardEvent[];
   proposals: BoardProposal[];
   onOpenEvent: (id: string) => void;
@@ -90,9 +88,6 @@ export function Timeline({
   const restrictionBars: Bar[] = [
     ...hard.map((w) => ({ id: w.key, start: w.start, end: w.end, label: w.title, color: "var(--danger)", title: w.message })),
     ...soft.map((w) => ({ id: w.key, start: w.start, end: w.end, label: w.title, color: "var(--warn)", title: w.message, dashed: true })),
-    ...victoriales
-      .filter((v) => v.date)
-      .map((v) => ({ id: `v-${v.id}`, start: v.date!, end: v.endDate ?? v.date!, label: v.label, color: "var(--brand-accent)", title: `${v.label}: ${formatIsoRange(v.date!, v.endDate ?? v.date!)}`, minWidth: v.label.length * 6.4 + 20 })),
   ];
 
   const eventBars: Bar[] = [

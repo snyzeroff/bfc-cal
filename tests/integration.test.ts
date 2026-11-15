@@ -489,6 +489,21 @@ describe("concurrent editing and permissions", () => {
     expect(await code(setArchived(member, event.id, true))).toBe("forbidden");
   });
 
+  it("once published, only an admin can change what members see", async () => {
+    const { event } = await createEvent(member, { title: "Mine", categoryId: conf.id, status: "confirmed", startAt: at("2027-02-10", "18:00"), endAt: at("2027-02-10", "19:00") });
+    await publishEvent(admin, event.id);
+    expect(await code(updateEvent(member, event.id, { registrationUrl: "https://phish.example/login" }))).toBe("forbidden");
+    expect(await code(updateEvent(member, event.id, { title: "Changed" }))).toBe("forbidden");
+    expect(await code(updateEvent(member, event.id, { startAt: at("2027-02-11", "18:00"), endAt: at("2027-02-11", "19:00") }))).toBe("forbidden");
+    expect(await code(updateEvent(member, event.id, { embedUrl: "https://luma.com/embed/event/evt-abc123/simple" }))).toBe("forbidden");
+    // Private planning fields stay editable by the organiser.
+    expect(await code(updateEvent(member, event.id, { internalNotes: "Bring the badges" }))).toBe("ok");
+    expect(await code(updateEvent(admin, event.id, { title: "Changed by an admin" }))).toBe("ok");
+    const { proposal: p } = await addProposal(member, event.id, { startAt: at("2027-02-12", "18:00"), endAt: at("2027-02-12", "19:00") });
+    expect(await code(confirmProposal(member, p.id))).toBe("forbidden");
+    expect(await code(confirmProposal(admin, p.id))).toBe("ok");
+  });
+
   it("every change leaves a trace in the event history", async () => {
     const ev = await confirmed();
     await updateEvent(admin, ev.id, { location: "Room Z" });

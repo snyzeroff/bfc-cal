@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { CalendarDays, CheckSquare, ExternalLink, GraduationCap, LayoutDashboard, LogOut, Mic2, MoreHorizontal, Rss, Settings, Ticket } from "lucide-react";
+import { CalendarDays, CheckSquare, ExternalLink, GraduationCap, LayoutDashboard, LogOut, Mic2, MoreHorizontal, Rss, Settings, Ticket, UserRound } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { Logo } from "@/components/logo";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -21,6 +21,8 @@ const NAV = [
   { href: "/board/tasks", label: "Tasks", icon: CheckSquare, key: "g t" },
   { href: "/board/academic", label: "Academic", icon: GraduationCap, key: "g a" },
 ] as const;
+
+const PROFILE_HREF = "/board/profile";
 
 export function BoardShell({
   me,
@@ -39,6 +41,7 @@ export function BoardShell({
   const router = useRouter();
   const params = useSearchParams();
   const active = (href: string, exact?: boolean) => (exact ? pathname === href : pathname.startsWith(href));
+  const onProfile = active(PROFILE_HREF);
 
   useEffect(() => {
     if (params.get("denied")) {
@@ -102,12 +105,22 @@ export function BoardShell({
             Members calendar
           </NavLink>
         </nav>
-        <div className="mt-auto flex items-center gap-2 rounded-xl border border-line bg-surface p-2">
-          <Avatar name={me.name} size={30} />
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-[13px] font-medium leading-tight">{me.name}</p>
-            <p className="truncate text-[11px] leading-tight text-ink-3">{ROLE_LABEL[me.role]}</p>
-          </div>
+        <div className="mt-auto flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
+          <Link
+            href={PROFILE_HREF}
+            aria-current={onProfile ? "page" : undefined}
+            title="My profile"
+            className={cn("flex min-w-0 flex-1 items-center gap-2 rounded-lg p-1 transition-colors hover:bg-surface-2", onProfile && "bg-surface-2")}
+          >
+            <span aria-hidden className="flex shrink-0">
+              <Avatar name={me.name} size={30} />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="sr-only">My profile: </span>
+              <span className="block truncate text-[13px] font-medium leading-tight">{me.name}</span>
+              <span className="block truncate text-[11px] leading-tight text-ink-3">{ROLE_LABEL[me.role]}</span>
+            </span>
+          </Link>
           <ThemeToggle />
           <form action={logoutAction}>
             <button aria-label="Sign out" title="Sign out" className="grid h-8 w-8 place-items-center rounded-lg text-ink-3 hover:bg-surface-2 hover:text-ink">
@@ -123,8 +136,9 @@ export function BoardShell({
           <Logo shortName={shortName} size={24} />
           <span className="flex-1 truncate text-[13px] font-semibold">{orgName}</span>
           <ThemeToggle />
-          <Menu trigger={<button aria-label="Account"><Avatar name={me.name} size={28} /></button>}>
+          <Menu trigger={<button aria-label="Account" className={cn("rounded-full", onProfile && "ring-2 ring-brand-ink")}><Avatar name={me.name} size={28} /></button>}>
             <MenuLabel>{me.name} · {ROLE_LABEL[me.role]}</MenuLabel>
+            <MenuItem icon={<UserRound />} checked={onProfile} onSelect={() => router.push(PROFILE_HREF)}>My profile</MenuItem>
             <MenuItem icon={<ExternalLink />} onSelect={() => router.push("/")}>Members calendar</MenuItem>
             <MenuSeparator />
             <MenuItem icon={<LogOut />} onSelect={() => logoutAction()}>Sign out</MenuItem>

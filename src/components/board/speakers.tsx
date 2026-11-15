@@ -70,7 +70,7 @@ export function SpeakerDirectory({
     <div>
       <PageHeader
         title="Speakers"
-        description="Prospective and past speakers. Contact details and notes stay inside the board; only the name, role, organisation and biography appear on published events."
+        description="Contact details and notes stay inside the board."
         actions={<Button variant="primary" onClick={() => setEditing({ id: null, form: blank(me.id) })}><Plus className="h-4 w-4" /> Add speaker</Button>}
       />
 
@@ -87,9 +87,7 @@ export function SpeakerDirectory({
       </div>
 
       {list.length === 0 ? (
-        <EmptyState icon={<Mic2 className="h-5 w-5" />} title={speakers.length ? "No speaker matches" : "No speakers yet"} action={!speakers.length && <Button variant="outline" onClick={() => setEditing({ id: null, form: blank(me.id) })}>Add the first speaker</Button>}>
-          {speakers.length ? "Try another search or status." : "Track people you would like to invite — even before there is an event."}
-        </EmptyState>
+        <EmptyState icon={<Mic2 className="h-5 w-5" />} title={speakers.length ? "No speaker matches" : "No speakers yet"} action={!speakers.length && <Button variant="outline" onClick={() => setEditing({ id: null, form: blank(me.id) })}>Add the first speaker</Button>} />
       ) : (
         <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {list.map((s) => {
@@ -123,7 +121,6 @@ export function SpeakerDirectory({
           onOpenChange={(o) => !o && setEditing(null)}
           side="right"
           title={editing.id ? editing.form.name || "Speaker" : "Add speaker"}
-          description={editing.id ? undefined : "You can add someone as a prospect without creating any event."}
           footer={
             <div className="flex w-full flex-wrap items-center gap-2">
               {current && me.isAdmin && (
@@ -185,7 +182,7 @@ export function SpeakerDirectory({
             <div className="mt-5">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-ink-3">Conferences</p>
               {current.events.length === 0 ? (
-                <p className="text-xs text-ink-3">No conference with this speaker yet.</p>
+                <p className="text-xs text-ink-3">No conference yet.</p>
               ) : (
                 <ul className="flex flex-col divide-y divide-line rounded-lg border border-line">
                   {current.events.map((e) => (

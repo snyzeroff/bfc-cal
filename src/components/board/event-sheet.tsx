@@ -57,7 +57,7 @@ export function EventSheet({
                   <Globe className="h-4 w-4" /> Publish
                 </Button>
               ))}
-            <Button variant="ghost" size="icon" aria-label="Duplicate" title="Duplicate" onClick={() => mutate(() => duplicateEventAction(event.id), { success: "Duplicated — the copy starts as an idea" })}>
+            <Button variant="ghost" size="icon" aria-label="Duplicate" title="Duplicate" onClick={() => mutate(() => duplicateEventAction(event.id), { success: "Duplicated as an idea" })}>
               <Copy className="h-4 w-4" />
             </Button>
             {me.isAdmin && (

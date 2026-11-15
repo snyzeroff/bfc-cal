@@ -13,7 +13,7 @@ import { formatTime, parisDay } from "@/lib/time";
 // FullCalendar is only needed for the month grid: load it when a visitor asks for that view.
 const MembersMonth = dynamic(() => import("./members-month").then((m) => m.MembersMonth), {
   ssr: false,
-  loading: () => <div className="grid h-[420px] place-items-center rounded-xl border border-line bg-surface text-[13px] text-ink-3">Loading the month view…</div>,
+  loading: () => <div className="grid h-[420px] place-items-center rounded-xl border border-line bg-surface text-[13px] text-ink-3">Loading…</div>,
 });
 
 const MONTH = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Paris", month: "long", year: "numeric" });
@@ -59,7 +59,6 @@ export function MembersCalendar({ events, defaultView, weekStartsOn, today }: { 
             <div className="flex flex-col items-center rounded-2xl border border-dashed border-line-strong px-6 py-16 text-center">
               <CalendarX2 className="h-6 w-6 text-ink-3" />
               <p className="mt-3 font-display text-2xl">No upcoming events yet</p>
-              <p className="mt-1 max-w-sm text-[13px] text-ink-3">New conferences are announced here first. Subscribe to the calendar and they will appear in yours automatically.</p>
             </div>
           ) : (
             <div className="flex flex-col gap-10">

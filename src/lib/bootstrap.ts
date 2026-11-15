@@ -85,16 +85,16 @@ export async function ensureBaseData(admin?: { email: string; password: string; 
   }
 
   if (admin) {
-    const [{ n: userCount }] = await db.select({ n: dsql<number>`count(*)::int` }).from(users);
-    if (userCount === 0) {
-      await db.insert(users).values({
-        email: admin.email.toLowerCase().trim(),
-        name: admin.name,
-        role: "super_admin",
-        passwordHash: await hashPassword(admin.password),
-      });
-      return { createdAdmin: true };
-    }
+    const passwordHash = await hashPassword(admin.password);
+    // One statement under a lock: two simultaneous first-run requests cannot both create an admin.
+    const created = await db.transaction(async (tx) => {
+      await tx.execute(dsql`select pg_advisory_xact_lock(7426001)`);
+      const [{ n }] = await tx.select({ n: dsql<number>`count(*)::int` }).from(users);
+      if (n > 0) return false;
+      await tx.insert(users).values({ email: admin.email.toLowerCase().trim(), name: admin.name, role: "super_admin", passwordHash });
+      return true;
+    });
+    if (created) return { createdAdmin: true };
   }
   return { createdAdmin: false };
 }

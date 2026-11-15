@@ -7,7 +7,7 @@ import { addProposalAction, confirmProposalAction, declineProposalAction, sugges
 import { Badge, Button, Callout, EmptyState, Field, Input, SectionTitle, Select } from "@/components/ui";
 import type { BoardWindow, EventDetail, SlotAssessment } from "@/lib/board-types";
 import { cn } from "@/lib/cn";
-import { addDays, formatIsoDay, formatIsoRange, weekdayOf } from "@/lib/time";
+import { addDays, formatIsoDay, todayParis, weekdayOf } from "@/lib/time";
 import { useMutate } from "./context";
 import { formatWallRange } from "./event-sheet";
 import { RestrictionHints } from "./new-event-dialog";
@@ -56,11 +56,11 @@ export function DatesPanel({ detail, windows, readOnly }: { detail: EventDetail;
             <span className="grid h-9 w-9 place-items-center rounded-full bg-ok-soft text-ok"><CalendarCheck className="h-4 w-4" /></span>
             <div>
               <p className="text-sm font-medium">{formatWallRange(e.start, e.end, e.allDay)}</p>
-              <p className="text-xs text-ink-3">Change it from the Details tab, or confirm a different option below.</p>
+              <p className="text-xs text-ink-3">Change it in the Details tab.</p>
             </div>
           </div>
         ) : (
-          <p className="text-[13px] text-ink-3">No date is confirmed yet. Confirming one of the options below sets the event date and releases the other options.</p>
+          <p className="text-[13px] text-ink-3">None yet. Confirming an option releases the others.</p>
         )}
       </section>
 
@@ -68,9 +68,7 @@ export function DatesPanel({ detail, windows, readOnly }: { detail: EventDetail;
       <section>
         <SectionTitle>Proposed dates</SectionTitle>
         {active.length === 0 ? (
-          <EmptyState icon={<CircleDashed className="h-5 w-5" />} title="No dates on hold">
-            Add the dates you are offering the speaker. Each appears as a tentative hold on the board calendar.
-          </EmptyState>
+          <EmptyState icon={<CircleDashed className="h-5 w-5" />} title="No dates on hold" />
         ) : (
           <ul className="flex flex-col gap-2">
             {active.map((p) => (
@@ -164,7 +162,7 @@ function RestrictionHintsInline({ windows, kind, day }: { windows: BoardWindow[]
 
 /** Scheduling assistant: explains every suggestion and never presents missing data as availability. */
 function Assistant({ eventId, onAdd, taken }: { eventId: string; onAdd: (day: string) => void; taken: string[] }) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayParis();
   const [from, setFrom] = useState(addDays(today, 7));
   const [to, setTo] = useState(addDays(today, 70));
   const [weekdays, setWeekdays] = useState([1, 2, 3, 4]);
@@ -243,7 +241,7 @@ function Assistant({ eventId, onAdd, taken }: { eventId: string; onAdd: (day: st
             <div>
               <p className="mb-2 text-xs font-medium text-ink-2">Best options</p>
               {result.suggestions.length === 0 ? (
-                <EmptyState icon={<HelpCircle className="h-5 w-5" />} title="No suitable date in this range">Every day is restricted, unavailable or conflicts with something. Try a wider range or other weekdays.</EmptyState>
+                <EmptyState icon={<HelpCircle className="h-5 w-5" />} title="No suitable date in this range">Try a wider range or other weekdays.</EmptyState>
               ) : (
                 <ul className="grid gap-2 md:grid-cols-2">
                   {result.suggestions.map((s) => (
@@ -252,7 +250,7 @@ function Assistant({ eventId, onAdd, taken }: { eventId: string; onAdd: (day: st
                 </ul>
               )}
               <p className="mt-3 text-xs text-ink-3">
-                Suggestions use verified academic calendars, scheduling rules, other BFC events and recorded speaker answers for {formatIsoRange(from, to)}. They cannot know about commitments that are not recorded here.
+                Only what is recorded here is taken into account.
               </p>
             </div>
           </div>

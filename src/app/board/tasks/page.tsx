@@ -10,7 +10,7 @@ export default async function TasksPage() {
   const data = await loadCalendarData(user);
   return (
     <div className="mx-auto max-w-4xl">
-      <PageHeader title="Tasks" description="Preparation steps and internal deadlines. They show on the board calendar and in private subscriptions — never publicly." />
+      <PageHeader title="Tasks" description="Internal deadlines. Never shown publicly." />
       <TasksBoard tasks={data.tasks} users={data.users} />
     </div>
   );

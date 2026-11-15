@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login } from "./helpers";
+import { choose, login } from "./helpers";
 
 test("academic calendar: import the official PDF, review, approve, and see the layer on the board calendar", async ({ page }) => {
   await login(page, "admin");
@@ -21,8 +21,8 @@ test("academic calendar: import the official PDF, review, approve, and see the l
 
   // Approve the BoE Year 1 midterms only.
   await page.getByRole("radio", { name: /To review/ }).click();
-  await page.getByLabel("Layer", { exact: true }).first().selectOption("boe-y1");
-  await page.getByLabel("Kind", { exact: true }).first().selectOption("midterm");
+  await choose(page.getByLabel("Layer", { exact: true }).first(), "BoE Year 1");
+  await choose(page.getByLabel("Kind", { exact: true }).first(), "Midterms");
   const rows = page.getByRole("listitem").filter({ has: page.getByLabel("First day") });
   await expect(rows).toHaveCount(2);
   await expect(rows.first().getByLabel("First day")).toHaveValue("2026-10-21");

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, CalendarPlus, MapPin } from "lucide-react";
 import { EventEmbed } from "@/components/event-embed";
 import { MembersCalendar } from "@/components/members-calendar";
+import { cn } from "@/lib/cn";
 import { publishDueEvents } from "@/lib/events/service";
 import { listPublicEvents, serializePublicEvent } from "@/lib/public";
 import { getSetting } from "@/lib/settings";
@@ -25,7 +26,7 @@ export default async function HomePage() {
           Conferences &amp; events.
         </h1>
         <p className="mt-5 max-w-xl text-[clamp(1.05rem,2.1vw,1.3rem)] leading-snug text-ink-2">
-          {appearance.tagline}. Subscribe once: new conferences, room changes and cancellations reach your own calendar.
+          {appearance.tagline}.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link href="/subscribe" className="press inline-flex h-12 items-center gap-2 rounded-full bg-brand px-6 text-[15px] font-medium text-on-brand hover:bg-brand-deep">
@@ -40,8 +41,9 @@ export default async function HomePage() {
       {/* The event that matters now. */}
       {next && (
         <section aria-label={next.featured ? "Featured event" : "Next event"} className="rise rise-2 overflow-hidden rounded-3xl bg-surface shadow-md ring-1 ring-line">
-          <div className={next.embedUrl ? "grid lg:grid-cols-[1.05fr_1fr]" : ""}>
-            <div className="flex flex-col justify-center p-7 sm:p-11">
+          {/* With a registration widget, the text sits in a band above it so the widget can unfold across the card. */}
+          <div className={cn("flex flex-col p-7 sm:p-11", next.embedUrl && "lg:flex-row lg:items-end lg:justify-between lg:gap-10 lg:py-9")}>
+            <div className="min-w-0">
               <p className="text-[13px] font-semibold text-brand-ink">{next.featured ? "Featured" : "Next up"} · {next.category.name}</p>
               <h2 className="mt-3 font-display text-[clamp(1.8rem,4vw,2.75rem)] leading-[1.08] tracking-[-0.03em]">{next.title}</h2>
               {next.speaker && (
@@ -50,7 +52,9 @@ export default async function HomePage() {
                   {(next.speaker.position || next.speaker.organization) && <span className="text-ink-3"> — {[next.speaker.position, next.speaker.organization].filter(Boolean).join(", ")}</span>}
                 </p>
               )}
-              <dl className="mt-7 flex flex-col gap-1 text-[15px]">
+            </div>
+            <div className={cn("flex flex-col", next.embedUrl && "lg:shrink-0 lg:items-end lg:text-right")}>
+              <dl className={cn("mt-7 flex flex-col gap-1 text-[15px]", next.embedUrl && "lg:mt-0 lg:items-end")}>
                 <dt className="sr-only">When</dt>
                 <dd className="font-medium">{formatRange(new Date(next.start), new Date(next.end), next.allDay)}</dd>
                 {next.location && (
@@ -60,16 +64,16 @@ export default async function HomePage() {
                   </>
                 )}
               </dl>
-              <Link href={`/events/${next.id}`} className="press mt-8 inline-flex h-11 items-center gap-1.5 self-start rounded-full bg-ink px-5 text-sm font-medium text-bg hover:opacity-90">
+              <Link href={`/events/${next.id}`} className={cn("press mt-8 inline-flex h-11 items-center gap-1.5 self-start rounded-full bg-ink px-5 text-sm font-medium text-bg hover:opacity-90", next.embedUrl && "lg:mt-5 lg:self-end")}>
                 Event details <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
-            {next.embedUrl && (
-              <div className="border-t border-line bg-surface-2 p-4 sm:p-6 lg:border-l lg:border-t-0">
-                <EventEmbed url={next.embedUrl} title={next.title} className="rounded-2xl border-0 shadow-sm ring-1 ring-line" />
-              </div>
-            )}
           </div>
+          {next.embedUrl && (
+            <div className="border-t border-line bg-surface-2 p-4 sm:p-6">
+              <EventEmbed url={next.embedUrl} title={next.title} layout="wide" className="rounded-2xl border-0 shadow-sm ring-1 ring-line" />
+            </div>
+          )}
         </section>
       )}
 

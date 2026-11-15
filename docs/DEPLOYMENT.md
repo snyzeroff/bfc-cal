@@ -39,6 +39,7 @@ Things to know about Neon's free plan:
 | `APP_URL` | yes | Public origin, e.g. `https://calendar.bfc.example` — used in subscription URLs and feed links |
 | `DATABASE_URL_PUBLIC` | recommended | Connection string of the restricted `bfc_public` role |
 | `CRON_SECRET` | optional | Bearer secret for `/api/cron/publish` |
+| `SETUP_TOKEN` | recommended on a new site | Code asked by `/setup` before the first Super Admin can be created |
 | `SEED_ADMIN_*` | seed only | Used by `npm run db:seed`; not needed at runtime |
 
 ## 3a. Vercel

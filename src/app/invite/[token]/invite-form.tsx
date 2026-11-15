@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { acceptInviteAction } from "@/app/actions/auth";
+import { authButton, authInput } from "@/components/auth-shell";
 import { Button, Callout, Field, Input } from "@/components/ui";
 
 export function InviteForm({ token }: { token: string }) {
@@ -11,7 +12,7 @@ export function InviteForm({ token }: { token: string }) {
   const [pending, start] = useTransition();
   return (
     <form
-      className="mt-8 flex flex-col gap-4"
+      className="flex flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
         const fd = new FormData(e.currentTarget);
@@ -28,13 +29,13 @@ export function InviteForm({ token }: { token: string }) {
     >
       {error && <Callout tone="danger">{error}</Callout>}
       <Field label="New password" hint="At least 10 characters.">
-        <Input name="password" type="password" autoComplete="new-password" required minLength={10} className="h-11" autoFocus />
+        <Input name="password" type="password" autoComplete="new-password" required minLength={10} className={authInput} autoFocus />
       </Field>
       <Field label="Confirm password">
-        <Input name="confirm" type="password" autoComplete="new-password" required minLength={10} className="h-11" />
+        <Input name="confirm" type="password" autoComplete="new-password" required minLength={10} className={authInput} />
       </Field>
-      <Button type="submit" variant="primary" size="lg" loading={pending} className="mt-2">
-        Set password and continue
+      <Button type="submit" variant="primary" size="lg" loading={pending} className={authButton}>
+        Set password
       </Button>
     </form>
   );

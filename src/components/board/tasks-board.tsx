@@ -53,11 +53,11 @@ export function TasksBoard({ tasks, users }: { tasks: BoardTask[]; users: BoardU
         </section>
       ))}
       <section>
-        {filtered.length === 0 && scope !== "done" && <p className="mb-4 rounded-xl border border-dashed border-line-strong px-4 py-8 text-center text-[13px] text-ink-3">{scope === "mine" ? "Nothing is assigned to you right now." : "No open tasks."}</p>}
+        {filtered.length === 0 && scope !== "done" && <p className="mb-4 rounded-xl border border-dashed border-line-strong px-4 py-8 text-center text-[13px] text-ink-3">{scope === "mine" ? "Nothing assigned to you." : "No open tasks."}</p>}
         {scope !== "done" && (
           <>
             <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">Add a general task</h2>
-            <p className="mb-2 text-xs text-ink-3">For tasks tied to a conference, add them from the conference’s Tasks tab.</p>
+            <p className="mb-2 text-xs text-ink-3">Conference tasks go in the conference’s Tasks tab.</p>
             <TaskListAdder users={users} />
           </>
         )}

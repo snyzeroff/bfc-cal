@@ -43,6 +43,13 @@
       "when": 1794760834977,
       "tag": "0005_sport_retake",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794765320034,
+      "tag": "0006_signup_links",
+      "breakpoints": true
     }
   ]
 }

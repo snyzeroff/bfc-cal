@@ -137,7 +137,7 @@ describe("iCalendar writer", () => {
   const base = { uid: "event-1@bfc-calendar", title: "Hello, world; ok", start: new Date("2027-03-28T16:30:00Z"), end: new Date("2027-03-28T18:00:00Z"), status: "CONFIRMED" as const, sequence: 3, createdAt: new Date("2027-01-01T00:00:00Z"), updatedAt: new Date("2027-01-02T00:00:00Z") };
 
   it("escapes text and folds long lines at 75 octets without breaking UTF-8", () => {
-    expect(escapeText("a,b;c\\d\ne")).toBe("a\\,b\;c\\\\d\\ne");
+    expect(escapeText("a,b;c\\d\ne")).toBe("a\\,b\\;c\\\\d\\ne");
     const folded = foldLine("DESCRIPTION:" + "é".repeat(120));
     for (const line of folded.split("\r\n")) expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75);
     expect(folded.replace(/\r\n /g, "")).toBe("DESCRIPTION:" + "é".repeat(120));
@@ -160,7 +160,7 @@ describe("iCalendar writer", () => {
   it("marks cancellations in a way every client can show", () => {
     const ics = buildCalendar({ name: "T", events: [{ ...base, status: "CANCELLED" }] });
     expect(ics).toContain("STATUS:CANCELLED");
-    expect(ics).toContain("SUMMARY:Cancelled: Hello\\, world\; ok");
+    expect(ics).toContain("SUMMARY:Cancelled: Hello\\, world\\; ok");
     expect(ics).toContain("TRANSP:TRANSPARENT");
   });
 });

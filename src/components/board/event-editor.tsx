@@ -11,7 +11,7 @@ import type { EventStatus } from "@/db/schema";
 import type { BoardCategory, BoardLayer, BoardSpeakerLite, BoardUser, BoardWindow, EventDetail } from "@/lib/board-types";
 import { cn } from "@/lib/cn";
 import { parseEmbed } from "@/lib/embed";
-import { formatDateTime, wallToInstant } from "@/lib/time";
+import { addDays, diffDays, formatDateTime, wallToInstant } from "@/lib/time";
 import { useBoard, useMutate } from "./context";
 import { DatesPanel } from "./dates-panel";
 import { DiscussionPanel, HistoryPanel } from "./discussion-panel";
@@ -73,6 +73,9 @@ const initialForm = (d: EventDetail): FormState => {
   const endWall = e.end ?? "";
   // All-day events are stored with an exclusive end: show the last day instead.
   const lastDay = e.allDay && endWall ? new Date(Date.parse(`${endWall.slice(0, 10)}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10) : endWall.slice(0, 10);
+  const startDay = e.start?.slice(0, 10) ?? "";
+  // A timed event that simply runs past midnight needs no "last day": the end time says it.
+  const overnight = !e.allDay && !!startDay && lastDay === addDays(startDay, 1) && endWall.slice(11) <= (e.start?.slice(11) ?? "");
   return {
     title: e.title,
     description: e.description,
@@ -80,7 +83,7 @@ const initialForm = (d: EventDetail): FormState => {
     categoryId: e.categoryId,
     speakerId: e.speakerId ?? "",
     date: e.start?.slice(0, 10) ?? "",
-    endDate: lastDay && lastDay !== e.start?.slice(0, 10) ? lastDay : "",
+    endDate: lastDay && lastDay !== startDay && !overnight ? lastDay : "",
     startTime: e.start && !e.allDay ? e.start.slice(11) : "18:30",
     endTime: e.end && !e.allDay ? e.end.slice(11) : "20:00",
     allDay: e.allDay,
@@ -126,14 +129,19 @@ export function EventEditor({
 
   // When the server sends a newer version (after a save or someone else's change), adopt it
   // unless there are unsaved edits. Adjusted during render, as React recommends for derived state.
+  // `formVersion` is the version the form was built from: saving against it (not against the
+  // latest one received) is what lets the server detect someone else's change.
   const [seenVersion, setSeenVersion] = useState(e.version);
+  const [formVersion, setFormVersion] = useState(e.version);
+  const adopt = () => {
+    const next = initialForm(detail);
+    setForm(next);
+    setBaseline(JSON.stringify(next));
+    setFormVersion(e.version);
+  };
   if (seenVersion !== e.version) {
     setSeenVersion(e.version);
-    if (!dirty) {
-      const next = initialForm(detail);
-      setForm(next);
-      setBaseline(JSON.stringify(next));
-    }
+    if (!dirty) adopt();
   }
 
   useEffect(() => {
@@ -161,11 +169,14 @@ export function EventEditor({
             endDate: form.endDate || null,
             scheduledPublishAt: form.scheduledPublishAt || null,
           },
-          { ...o, expectedVersion: e.version },
+          { ...o, expectedVersion: formVersion },
         ),
       {
         success: "Changes saved",
-        onOk: () => setBaseline(JSON.stringify(form)),
+        onOk: (d) => {
+          setBaseline(JSON.stringify(form));
+          setFormVersion(d.version);
+        },
       },
     );
 
@@ -211,7 +222,7 @@ export function EventEditor({
             {me.isAdmin &&
               !e.archived &&
               (e.isPublic ? (
-                <Button variant="outline" loading={busy} onClick={() => mutate(() => publishEventAction(e.id, false, { expectedVersion: e.version }), { success: "Removed from the members calendar and its feed" })}>
+                <Button variant="outline" loading={busy} onClick={() => mutate(() => publishEventAction(e.id, false, { expectedVersion: e.version }), { success: "Removed from the members calendar" })}>
                   <GlobeLock className="h-4 w-4" /> Unpublish
                 </Button>
               ) : (
@@ -267,11 +278,11 @@ export function EventEditor({
       </header>
 
       <div className="mb-5 flex flex-col gap-2">
-        {e.archived && <Callout tone="neutral" icon={<Archive />} title="This event is archived">It is hidden from calendars and feeds. Restore it to edit.</Callout>}
+        {e.archived && <Callout tone="neutral" icon={<Archive />} title="This event is archived">Hidden from calendars and feeds. Restore it to edit.</Callout>}
         {!e.canEdit && !e.archived && <Callout tone="neutral" icon={<Lock />}>You can view this event and comment, but only its organisers and Board Admins can edit it.</Callout>}
         {e.violation && !e.overrideReason && (
-          <Callout tone="danger" icon={<ShieldAlert />} title="This event now sits inside a restricted period">
-            {e.violation} Move it to another date, or ask a Super Admin to record an exception.
+          <Callout tone="danger" icon={<ShieldAlert />} title="Inside a restricted period">
+            {e.violation} Move it, or ask a Super Admin for an exception.
           </Callout>
         )}
         {e.overrideReason && (
@@ -281,7 +292,7 @@ export function EventEditor({
         )}
         {e.scheduledPublishAt && !e.isPublic && (
           <Callout tone="info" icon={<Clock />} title="Publication scheduled">
-            Will be published automatically on {formatDateTime(wallToInstant(e.scheduledPublishAt))} (Paris time).
+            Publishes on {formatDateTime(wallToInstant(e.scheduledPublishAt))} (Paris time).
           </Callout>
         )}
       </div>
@@ -328,11 +339,24 @@ export function EventEditor({
               </Field>
             </fieldset>
 
-            <Section title="Date and place" description="The confirmed date. To hold several candidate dates while a speaker decides, use the Dates tab.">
+            <Section title="Date and place" description="The confirmed date. Candidate dates go in the Dates tab.">
               <fieldset disabled={readOnly} className="grid gap-4 sm:grid-cols-4">
                 <Field label="Date" className="sm:col-span-2">
-                  <Input type="date" value={form.date} onChange={(ev) => set("date", ev.target.value)} />
+                  <Input
+                    type="date"
+                    value={form.date}
+                    onChange={(ev) => {
+                      const date = ev.target.value;
+                      // A multi-day event keeps its length when its first day moves.
+                      setForm((f) => ({ ...f, date, endDate: f.endDate && f.date && date ? addDays(date, diffDays(f.date, f.endDate)) : f.endDate }));
+                    }}
+                  />
                 </Field>
+                {!form.allDay && form.endDate && (
+                  <Field label="Last day" className="sm:col-span-2" hint="Clear it for an event that ends the same day.">
+                    <Input type="date" value={form.endDate} min={form.date} onChange={(ev) => set("endDate", ev.target.value)} />
+                  </Field>
+                )}
                 {form.allDay ? (
                   <Field label="Last day" optional className="sm:col-span-2">
                     <Input type="date" value={form.endDate} min={form.date} onChange={(ev) => set("endDate", ev.target.value)} />
@@ -364,10 +388,10 @@ export function EventEditor({
               </fieldset>
             </Section>
 
-            <Section title="Public information" description="Shown to members once the event is published.">
+            <Section title="Public information" description="Shown to members once published.">
               <fieldset disabled={readOnly} className="grid gap-4">
                 <Field label="Description">
-                  <Textarea value={form.description} onChange={(ev) => set("description", ev.target.value)} rows={6} maxLength={8000} placeholder="What is this event about, who is it for, what will attendees learn?" />
+                  <Textarea value={form.description} onChange={(ev) => set("description", ev.target.value)} rows={6} maxLength={8000} placeholder="What is it about, and who is it for?" />
                 </Field>
                 <Field label="Registration link" optional>
                   <Input value={form.registrationUrl} onChange={(ev) => set("registrationUrl", ev.target.value)} placeholder="https://" inputMode="url" />
@@ -376,17 +400,17 @@ export function EventEditor({
                   label="Luma registration widget"
                   optional
                   error={embedPreview.ok ? undefined : embedPreview.error}
-                  hint={embedPreview.ok && embedPreview.url ? `Will embed ${embedPreview.url}` : "Paste the embed code from Luma (Event → Share → Embed). Members can then register without leaving the site; it replaces the registration button."}
+                  hint={embedPreview.ok && embedPreview.url ? `Will embed ${embedPreview.url}` : "Paste the embed code from Luma (Event → Share → Embed). It replaces the registration button."}
                 >
                   <Textarea value={form.embed} onChange={(ev) => set("embed", ev.target.value)} rows={2} className="min-h-[60px] font-mono text-xs" placeholder={'<iframe src="https://luma.com/embed/event/evt-…/simple" …></iframe>'} spellCheck={false} />
                 </Field>
                 {me.isAdmin && (
-                  <Switch checked={form.featured} onCheckedChange={(v) => set("featured", v)} disabled={readOnly} label="Feature at the top of the members site" description="While it is published and upcoming, this event takes the headline spot on the home page instead of the next event by date." />
+                  <Switch checked={form.featured} onCheckedChange={(v) => set("featured", v)} disabled={readOnly} label="Feature at the top of the members site" description="Takes the headline spot while published and upcoming." />
                 )}
               </fieldset>
             </Section>
 
-            <Section title="Board only" description="Never shown to members, never included in the public feed." icon={<Lock className="h-3.5 w-3.5" />}>
+            <Section title="Board only" description="Never shown to members or in the public feed." icon={<Lock className="h-3.5 w-3.5" />}>
               <fieldset disabled={readOnly} className="grid gap-5">
                 <Field label="Internal notes">
                   <Textarea value={form.internalNotes} onChange={(ev) => set("internalNotes", ev.target.value)} rows={4} maxLength={8000} placeholder="Speaker constraints, budget, who knows whom…" />
@@ -413,7 +437,7 @@ export function EventEditor({
                 {layers.length > 0 && (
                   <div>
                     <p className="mb-1 text-xs font-medium text-ink-2">Audience</p>
-                    <p className="mb-2 text-xs text-ink-3">Which students is this for? The scheduling assistant only checks these calendars. None selected = everyone.</p>
+                    <p className="mb-2 text-xs text-ink-3">Only these calendars are checked. None selected = everyone.</p>
                     <div className="flex flex-wrap gap-2">
                       {layers.map((l) => {
                         const on = form.audience.includes(l.key);
@@ -434,7 +458,7 @@ export function EventEditor({
                   </div>
                 </div>
                 {me.isAdmin && !e.isPublic && (
-                  <Field label="Schedule publication" optional hint="The event is published automatically at this time (Paris), if it is confirmed by then.">
+                  <Field label="Schedule publication" optional hint="Paris time. Publishes only if confirmed by then.">
                     <Input type="datetime-local" value={form.scheduledPublishAt} onChange={(ev) => set("scheduledPublishAt", ev.target.value)} className="max-w-xs" />
                   </Field>
                 )}
@@ -445,7 +469,7 @@ export function EventEditor({
               <div className={cn("fixed inset-x-0 bottom-14 z-20 flex justify-center px-4 transition-all duration-200 lg:bottom-5 lg:left-[224px]", dirty ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-4 opacity-0")}>
                 <div className="flex items-center gap-3 rounded-xl border border-line bg-surface py-2 pl-4 pr-2 shadow-lg">
                   <span className="text-[13px] text-ink-2">Unsaved changes</span>
-                  <Button variant="ghost" size="sm" onClick={() => setForm(JSON.parse(baseline))}>Discard</Button>
+                  <Button variant="ghost" size="sm" onClick={adopt}>Discard</Button>
                   <Button type="submit" variant="primary" size="sm" loading={busy}>Save changes</Button>
                 </div>
               </div>
@@ -466,11 +490,11 @@ export function EventEditor({
           <HistoryPanel detail={detail} />
         </TabPanel>
         <TabPanel value="preview">
-          <Callout tone={e.isPublic ? "ok" : "neutral"} icon={e.isPublic ? <Globe /> : <Lock />} className="mb-5" title={e.isPublic ? "This is live on the members calendar" : "Not public yet"}>
+          <Callout tone={e.isPublic ? "ok" : "neutral"} icon={e.isPublic ? <Globe /> : <Lock />} className="mb-5" title={e.isPublic ? "Live on the members calendar" : "Not public yet"}>
             {e.isPublic ? (
-              <>Members see exactly this. <Link href={`/events/${e.id}`} target="_blank" className="underline underline-offset-2">Open the public page</Link></>
+              <><Link href={`/events/${e.id}`} target="_blank" className="underline underline-offset-2">Open the public page</Link></>
             ) : (
-              "This is how the event will look once published. Internal notes, organisers, tasks and proposed dates are never shown."
+              "Internal notes, organisers, tasks and proposed dates are never shown."
             )}
             {dirty && " Includes your unsaved changes."}
           </Callout>
@@ -485,7 +509,7 @@ export function EventEditor({
         onOpenChange={setConfirmDelete}
         size="sm"
         title="Delete this event permanently?"
-        description="Its tasks, comments, proposed dates and attachments are deleted too. Subscribers will see it disappear at their next refresh. This cannot be undone — archiving is usually the better choice."
+        description="Its tasks, comments, proposed dates and attachments are deleted too. This cannot be undone."
         footer={
           <>
             <Button variant="ghost" onClick={() => setConfirmDelete(false)}>Cancel</Button>

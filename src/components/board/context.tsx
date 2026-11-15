@@ -58,7 +58,7 @@ export function useMutate() {
         try {
           res = await fn(reason ? { overrideReason: reason } : {});
         } catch {
-          res = { ok: false, code: "error", error: "Network error — check your connection and try again." };
+          res = { ok: false, code: "error", error: "Network error. Try again." };
         } finally {
           setBusy(false);
         }
@@ -116,7 +116,6 @@ function RestrictionDialog({ pending, busy }: { pending: Pending; busy: boolean 
       open
       onOpenChange={(o) => !o && pending.cancel()}
       title="This date is restricted"
-      description="A scheduling rule blocks conferences on this date."
       footer={
         pending.canOverride && confirming ? (
           <>
@@ -142,11 +141,11 @@ function RestrictionDialog({ pending, busy }: { pending: Pending; busy: boolean 
           </Callout>
         ))}
         {!pending.canOverride && (
-          <p className="text-[13px] text-ink-3">Only a Super Admin can make an exception, and every exception is recorded in the audit log.</p>
+          <p className="text-[13px] text-ink-3">Only a Super Admin can make an exception.</p>
         )}
         {pending.canOverride && confirming && (
-          <Field label="Reason for the exception" hint="Required. Stored with the event and in the audit log.">
-            <Textarea autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Speaker only available this week; approved by the board on 12 Jan." />
+          <Field label="Reason for the exception" hint="Required. Recorded in the audit log.">
+            <Textarea autoFocus value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Speaker only available this week" />
           </Field>
         )}
       </div>

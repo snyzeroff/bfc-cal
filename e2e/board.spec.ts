@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { addDays, futureWeekday, login, logout } from "./helpers";
+import { addDays, choose, futureWeekday, login, logout } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
 
@@ -32,7 +32,7 @@ test("conference workflow: propose dates → confirm → publish → update → 
   await page.getByRole("tab", { name: /Dates/ }).click();
   const options = page.getByRole("listitem").filter({ has: page.getByLabel("Speaker availability") });
   await expect(options).toHaveCount(2);
-  await options.nth(1).getByLabel("Speaker availability").selectOption("available");
+  await choose(options.nth(1).getByLabel("Speaker availability"), "Speaker: available");
   await expect(page.getByText("Availability recorded")).toBeVisible();
   await options.nth(1).getByRole("button", { name: "Confirm" }).click();
   await expect(page.getByText("Date confirmed — the other options were released")).toBeVisible();
@@ -99,7 +99,7 @@ test("exam rule: the 21 days before an approved exam block conferences; only a S
   await page.getByRole("button", { name: "Add period" }).click();
   const period = page.getByRole("dialog", { name: "Add period" });
   await period.getByLabel("Label").fill("Exams");
-  await period.getByLabel("Kind").selectOption("exam");
+  await choose(period.getByLabel("Kind"), "Exams");
   await period.getByLabel("First day").fill(examStart);
   await period.getByLabel("Last day").fill(addDays(examStart, 2));
   await period.getByRole("button", { name: "Save" }).click();
@@ -126,7 +126,7 @@ test("exam rule: the 21 days before an approved exam block conferences; only a S
   // An internal meeting on the same day is allowed.
   dialog = page.getByRole("dialog", { name: "New event" });
   await dialog.getByLabel("Title").fill("E2E — board meeting in the window");
-  await dialog.getByLabel("Category").selectOption({ label: "Board meeting" });
+  await choose(dialog.getByLabel("Category"), "Board meeting");
   await expect(dialog.getByText("Restricted period", { exact: true })).toHaveCount(0);
   await dialog.getByRole("button", { name: "Create event" }).click();
   await expect(page).toHaveURL(/\/board\/events\/[0-9a-f-]{36}/);
@@ -269,4 +269,85 @@ test("Luma widget: paste the embed code, feature the event, and it heads the mem
   const luma = page.getByRole("link", { name: "Open the full event page on Luma" });
   await expect(luma).toHaveAttribute("href", "https://luma.com/event/evt-5TKn85pTxdeOPPi");
   await expect(luma.locator("svg")).toHaveCount(1);
+});
+
+test("tasks: an admin assigns a task from the list without losing its deadline", async ({ page }) => {
+  await login(page, "admin");
+  await page.goto("/board/tasks");
+  await page.getByRole("radio", { name: "Everyone" }).or(page.getByRole("tab", { name: "Everyone" })).click();
+  await page.getByLabel("New task").fill("E2E — print the badges");
+  await page.getByLabel("Deadline").fill(futureWeekday(6));
+  await page.getByRole("button", { name: "Add", exact: true }).click();
+  const row = page.getByRole("listitem").filter({ hasText: "E2E — print the badges" });
+  await expect(row).toBeVisible();
+  await choose(row.getByLabel("Assignee"), "Max Member");
+  await expect(row.getByLabel("Assignee")).toContainText("Max Member");
+  await page.reload();
+  await page.getByRole("radio", { name: "Everyone" }).or(page.getByRole("tab", { name: "Everyone" })).click();
+  const again = page.getByRole("listitem").filter({ hasText: "E2E — print the badges" });
+  await expect(again.getByLabel("Assignee")).toContainText("Max Member");
+  await expect(again.getByText(/^Due /)).toBeVisible(); // reassigning used to wipe the deadline
+});
+
+test("profile: clicking your name opens your profile, where you can rename yourself", async ({ page }) => {
+  await login(page, "member");
+  await page.getByRole("link", { name: /My profile/ }).click();
+  await expect(page).toHaveURL(/\/board\/profile$/);
+  const name = page.getByRole("form", { name: "Display name" });
+  await name.getByLabel("Display name").fill("Max Member-Renamed");
+  await name.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Name saved")).toBeVisible();
+  await expect(page.getByRole("link", { name: /My profile/ })).toContainText("Max Member-Renamed");
+  // Wrong current password: nothing changes.
+  const pw = page.getByRole("form", { name: "Change password" });
+  await pw.getByLabel("Current password").fill("not-my-password");
+  await pw.getByLabel("New password", { exact: true }).fill("a-brand-new-password");
+  await pw.getByLabel("Confirm new password").fill("a-brand-new-password");
+  await pw.getByRole("button", { name: "Change password" }).click();
+  await expect(page.getByText("Current password is incorrect.")).toBeVisible();
+  // Put the name back for the other tests.
+  await name.getByLabel("Display name").fill("Max Member");
+  await name.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Name saved").last()).toBeVisible();
+});
+
+test("invitation link: a Super Admin sets the role and the number of accounts; the link stops when full", async ({ page, browser }) => {
+  await login(page, "superAdmin");
+  await page.goto("/board/settings?tab=users");
+  await page.getByRole("button", { name: "New link" }).click();
+  const dialog = page.getByRole("dialog", { name: "New invitation link" });
+  await dialog.getByLabel("Name").fill("E2E board");
+  await choose(dialog.getByLabel("Role"), "Board Admin");
+  await dialog.getByLabel("Number of accounts").fill("1");
+  await dialog.getByRole("button", { name: "Create link" }).click();
+  const url = await page.getByRole("textbox", { name: "Invitation link" }).inputValue();
+  expect(url).toMatch(/\/join\/[A-Za-z0-9_-]{43}$/);
+  await page.getByRole("button", { name: "Done" }).click();
+
+  // A newcomer, in a separate browser, creates an account and lands on the board as Board Admin.
+  const visitor = await browser.newContext();
+  const join = await visitor.newPage();
+  await join.goto(url);
+  await expect(join.getByRole("heading", { name: "Join the board" })).toBeVisible();
+  await expect(join.getByText("Board Admin")).toBeVisible();
+  await join.getByLabel("Your name").fill("Nina Newcomer");
+  await join.getByLabel("Email").fill("nina@e2e.test");
+  await join.getByLabel("Password", { exact: true }).fill("nina-e2e-password");
+  await join.getByLabel("Confirm password").fill("nina-e2e-password");
+  await join.getByRole("button", { name: "Create account" }).click();
+  await expect(join).toHaveURL(/\/board$/);
+  await join.goto("/board/settings");
+  await expect(join).toHaveURL(/denied=1/); // Board Admin, not Super Admin
+
+  // The single place is taken: the link no longer works for anyone else.
+  const late = await (await browser.newContext()).newPage();
+  await late.goto(url);
+  await expect(late.getByRole("heading", { name: "Link expired" })).toBeVisible();
+
+  await page.reload();
+  const row = page.getByText("E2E board").locator("xpath=ancestor::div[contains(@class,'flex-wrap')][1]");
+  await expect(page.getByText("1 / 1 used")).toBeVisible();
+  await expect(page.getByText("Joined: Nina Newcomer")).toBeVisible();
+  await expect(row).toBeVisible();
+  await visitor.close();
 });

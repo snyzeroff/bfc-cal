@@ -20,11 +20,9 @@ export function Subscriptions({ publicUrl, shortName, tokens, retentionDays }: {
     <div className="flex flex-col gap-10">
       <section>
         <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold"><Lock className="h-4 w-4 text-ink-3" /> Board calendar <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] font-medium text-ink-3">private</span></h2>
-        <p className="mb-4 text-[13px] text-ink-3">Everything on the board calendar: confirmed and tentative events, and optionally proposed dates and task deadlines. Each address is personal and stops working the moment it is revoked or your access ends.</p>
+        <p className="mb-4 text-[13px] text-ink-3">Each address is personal. It stops working when revoked or when your access ends.</p>
         {tokens.length === 0 ? (
-          <EmptyState icon={<KeyRound className="h-5 w-5" />} title="No private subscription yet" action={<Button variant="primary" onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> Create my private address</Button>}>
-            Create a personal, secret address to follow the board calendar from your phone or laptop.
-          </EmptyState>
+          <EmptyState icon={<KeyRound className="h-5 w-5" />} title="No private subscription yet" action={<Button variant="primary" onClick={() => setCreating(true)}><Plus className="h-4 w-4" /> Create my private address</Button>} />
         ) : (
           <>
             <Card className="divide-y divide-line">
@@ -41,15 +39,15 @@ export function Subscriptions({ publicUrl, shortName, tokens, retentionDays }: {
                 </div>
               ))}
             </Card>
-            <Button variant="ghost" size="sm" className="mt-2" onClick={() => setCreating(true)}><Plus className="h-3.5 w-3.5" /> Another address (e.g. a second device)</Button>
-            <p className="mt-2 text-xs text-ink-3">For your security the address is shown only once. Lost it? Rotate to get a new one.</p>
+            <Button variant="ghost" size="sm" className="mt-2" onClick={() => setCreating(true)}><Plus className="h-3.5 w-3.5" /> Another address</Button>
+            <p className="mt-2 text-xs text-ink-3">The address is shown only once. Rotate to get a new one.</p>
           </>
         )}
       </section>
 
       <section>
         <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold"><Globe className="h-4 w-4 text-ink-3" /> Members calendar <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[11px] font-medium text-brand-ink">public</span></h2>
-        <p className="mb-4 text-[13px] text-ink-3">Published events only. Safe to share with every member.</p>
+        <p className="mb-4 text-[13px] text-ink-3">Published events only. Safe to share.</p>
         <Card className="flex flex-col gap-5 p-4">
           <CopyField value={publicUrl} label="Public calendar address" />
           <SubscribeGuide url={publicUrl} name={`${shortName} events`} />
@@ -57,7 +55,7 @@ export function Subscriptions({ publicUrl, shortName, tokens, retentionDays }: {
       </section>
 
       <Callout tone="neutral" title="How updates reach calendars">
-        When an event is edited, moved, cancelled, published or unpublished, the feeds change immediately. Each calendar app then picks up the change at its next refresh (Apple: as often as every 5 minutes to hourly; Outlook: every few hours; Google: up to a day). Cancelled events stay in the feed, marked as cancelled, for {retentionDays} days so that every app notices; unpublished events simply disappear from the public feed.
+        Feeds change immediately. Apps then refresh: Apple hourly, Outlook every few hours, Google up to a day. Cancelled events stay {retentionDays} days, marked as cancelled.
       </Callout>
 
       <Dialog
@@ -73,7 +71,7 @@ export function Subscriptions({ publicUrl, shortName, tokens, retentionDays }: {
         }
       >
         <div className="flex flex-col gap-4">
-          <Field label="Name" optional hint="Helps you tell your devices apart."><Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="e.g. iPhone" maxLength={60} /></Field>
+          <Field label="Name" optional><Input value={form.label} onChange={(e) => setForm({ ...form, label: e.target.value })} placeholder="e.g. iPhone" maxLength={60} /></Field>
           <Switch checked={form.includeTentative} onCheckedChange={(v) => setForm({ ...form, includeTentative: v })} label="Include proposed dates" description="Shown as tentative, prefixed with [Option]." />
           <Switch checked={form.includeDeadlines} onCheckedChange={(v) => setForm({ ...form, includeDeadlines: v })} label="Include task deadlines" description="Open tasks, as all-day entries." />
         </div>

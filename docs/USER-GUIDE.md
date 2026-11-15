@@ -42,3 +42,14 @@ If exam dates are corrected or added later, the periods move automatically and a
 ## Academic calendars (Board Admin)
 
 **Academic → Import calendar**, choose the official PDF. The extracted periods go to a review screen: compare with the document, correct anything wrong directly in the row, approve what is right, reject the rest. Rows marked *Needs attention* are those the extractor was unsure about. Only approved periods appear as layers and influence scheduling.
+
+## Your profile
+
+Click your name (bottom-left, or the avatar on a phone) to open **My profile**: change your display name, your email or your password, and sign out of your other devices.
+
+## Inviting people (Super Admin)
+
+Settings → People & roles offers two ways:
+
+- **Invite** — one person. You get a one-time link that lets them choose a password.
+- **Invitation links** — one link for several people. Choose a name, the role (Board Member or Board Admin), how many accounts it may create (1–100) and how long it is valid (1–30 days). Everyone who opens it creates their own account with that role. The list shows how many places are used and who joined; **Revoke** stops the link at once. Super Admins are always promoted one by one, from the list of people.

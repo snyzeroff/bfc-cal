@@ -141,7 +141,7 @@ function NewEventForm({
         open={open}
         onOpenChange={onOpenChange}
         title="New event"
-        description="Start with the essentials — everything can be refined afterwards. Nothing is public until you publish it."
+        description="Nothing is public until you publish it."
         footer={
           <>
             <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
@@ -177,7 +177,7 @@ function NewEventForm({
             </Field>
           </div>
           {templates.length > 0 && (
-            <Field label="Template" optional hint={templateId ? `Adds ${templates.find((t) => t.id === templateId)?.taskCount ?? 0} preparation tasks with deadlines relative to the event date.` : undefined}>
+            <Field label="Template" optional hint={templateId ? `Adds ${templates.find((t) => t.id === templateId)?.taskCount ?? 0} preparation tasks.` : undefined}>
               <Select value={templateId} onChange={(e) => applyTemplate(e.target.value)}>
                 <option value="">Blank event</option>
                 {templates.map((t) => (
@@ -202,7 +202,7 @@ function NewEventForm({
                 ]}
               />
             </div>
-            {mode === "none" && <p className="text-xs text-ink-3">The event starts as an idea. Add candidate dates later from its page.</p>}
+            {mode === "none" && <p className="text-xs text-ink-3">Starts as an idea. Add dates later.</p>}
             {mode !== "none" && (
               <>
                 {(mode === "options" ? rows : rows.slice(0, 1)).map((r, i) => (
@@ -236,13 +236,13 @@ function NewEventForm({
                 )}
                 {mode === "set" && <Switch checked={allDay} onCheckedChange={setAllDay} label="All day" />}
                 {mode === "options" && (
-                  <p className="text-xs text-ink-3">Options appear as tentative holds on the board calendar. Confirming one releases the others automatically.</p>
+                  <p className="text-xs text-ink-3">Confirming one option releases the others.</p>
                 )}
                 <RestrictionHints windows={windows} kind={kind} days={(mode === "options" ? filled : filled.slice(0, 1)).map((r) => ({ start: r.date }))} />
               </>
             )}
             {!isConference && mode !== "none" && kind === "meeting" && (
-              <p className="text-xs text-ink-3">Internal meetings are not subject to the 21-day rule before exams.</p>
+              <p className="text-xs text-ink-3">Meetings are exempt from the 21-day exam rule.</p>
             )}
           </div>
         </form>

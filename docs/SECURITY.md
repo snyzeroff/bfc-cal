@@ -18,9 +18,18 @@ Internal notes, tentative/proposed dates, unpublished events, tasks and deadline
 
 - Passwords: scrypt (N=16384) with a per-user salt, minimum 10 characters, never logged.
 - Sessions: 256-bit random token in an `HttpOnly`, `SameSite=Lax`, `Secure` (production) cookie; only its SHA-256 is stored; 30-day expiry; deleted on sign-out and on deactivation.
-- Login throttling: 8 failed attempts per email + IP per 15 minutes; identical error for unknown email and wrong password; constant work for unknown accounts.
-- Accounts are created by a Super Admin. Invitation / reset links are single-use, hashed at rest, valid 7 days. No email is sent by the app.
+- Identical error for unknown email and wrong password; constant work for unknown accounts.
+- Accounts come from a Super Admin: a personal invitation or an invitation link (see Accounts below). Personal links are single-use, hashed at rest, valid 7 days. No email is sent by the app.
 - Deactivating a user deletes their sessions, revokes their private feed tokens and their pending links. The last active Super Admin cannot be demoted or deactivated.
+
+### Accounts
+
+- **First account.** `/setup` works only while the users table is empty. The insert runs under a database lock, so two simultaneous requests cannot both create an admin. Set `SETUP_TOKEN` on a new deployment: the page then asks for it, and nobody else can claim the site between the deploy and your first visit.
+- **Personal invitations** (one person, one link, 7 days) set a password; accepting one ends every earlier session of that account.
+- **Invitation links** (Settings → People & roles) let several people create their own account with a role chosen by the Super Admin. Rules enforced on the server: only a Super Admin creates or revokes them; a link grants Board Member or Board Admin, never Super Admin; 1–100 accounts; 1–30 days; the counter is taken atomically, so the quota cannot be exceeded by simultaneous sign-ups; the link stops working if its author is deactivated or demoted; only the hash of the secret is stored; failed attempts are throttled; every creation, revocation and sign-up is in the audit log.
+- **Sign-in throttling.** 8 failures per email and address, and 20 per email whatever the address, per 15 minutes. An account without a password (invitation not yet accepted) can never sign in.
+- **Profile.** Everyone edits their own name, email and password at `/board/profile`. The account is taken from the session, never from the request; role and status cannot be changed there. Changing email or password requires the current password (throttled); a new password signs out the other devices.
+- **Published events.** Once an event is on the members calendar, only a Board Admin can change what members see (title, text, date, place, links, widget). Organisers keep access to private planning fields.
 
 ## Private calendar feeds
 

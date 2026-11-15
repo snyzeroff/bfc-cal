@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { and, eq, gte, inArray, lt, sql as dsql } from "drizzle-orm";
 import { db } from "@/db";
-import { academicEntries, academicImports, academicLayers, categories, events, importCandidates, speakers, users, type AcademicKind } from "@/db/schema";
+import { academicEntries, academicImports, academicLayers, auditLog, categories, events, importCandidates, settings, speakers, users, type AcademicKind } from "@/db/schema";
 import { approveCandidates, editCandidate, importCalendar, rejectCandidates } from "@/lib/academic/service";
 import { audit } from "@/lib/audit";
 import { createEvent } from "@/lib/events/service";
@@ -11,7 +11,8 @@ import { parisToInstant } from "@/lib/time";
 
 /**
  * One-off content for the 2026–27 year, requested by the club's administrator
- * and applied once at deploy time (each part is skipped if already present):
+ * and applied once: each part records that it ran, so a later deploy never
+ * brings back something an administrator has since deleted or changed.
  *
  *  1. the official academic calendars (BoE Y1/Y2 and AIDAMS Y1), from 1 November 2026;
  *  2. the first conference of the year.
@@ -25,15 +26,37 @@ const FROM = "2026-11-01";
 const MIN_CONFIDENCE = 75;
 const CALENDARS = ["boe-y1-y2-2026-2027.pdf", "aidams-y1-2026-2027.pdf"];
 const LUMA = "https://luma.com/embed/event/evt-5TKn85pTxdeOPPi/simple";
+const TITLE = "Philippe Heim – Conference Q&A";
+
+type Part = "calendars" | "review" | "conference";
+const MARKER = "bootstrap2026";
+
+async function partsDone(): Promise<Partial<Record<Part, boolean>>> {
+  const [row] = await db.select().from(settings).where(eq(settings.key, MARKER));
+  return (row?.value ?? {}) as Partial<Record<Part, boolean>>;
+}
+
+async function markDone(part: Part) {
+  const value = { ...(await partsDone()), [part]: true };
+  await db.insert(settings).values({ key: MARKER, value }).onConflictDoUpdate({ target: settings.key, set: { value, updatedAt: new Date() } });
+}
+
+/** True when the audit log shows this part already ran on a deployment that predates the marker. */
+async function ranBefore(action: string, summaryLike: string) {
+  const [row] = await db.select({ id: auditLog.id }).from(auditLog).where(and(eq(auditLog.action, action), dsql`${auditLog.summary} like ${summaryLike}`)).limit(1);
+  return !!row;
+}
 
 export async function runBootstrap2026(log: (m: string) => void = console.log) {
   const [admin] = await db.select().from(users).where(and(eq(users.role, "super_admin"), eq(users.active, true))).limit(1);
   if (!admin) return log("• 2026–27 content: waiting for the first Super Admin (will run at the next deploy).");
   const actor = { id: admin.id, name: admin.name, role: admin.role, active: true };
 
+  const done = await partsDone();
+
   /* ---- 1. academic calendars ---- */
   const [{ n: imports }] = await db.select({ n: dsql<number>`count(*)::int` }).from(academicImports);
-  if (imports === 0) {
+  if (!done.calendars && imports === 0 && !(await ranBefore("academic.bootstrap", "%.pdf:%"))) {
     for (const file of CALENDARS) {
       const bytes = new Uint8Array(fs.readFileSync(path.join(process.cwd(), "tests/fixtures/academic", file)));
       const res = await importCalendar(actor, file, bytes);
@@ -55,11 +78,17 @@ export async function runBootstrap2026(log: (m: string) => void = console.log) {
     }
   }
 
-  await reviewLeftovers2026(actor, log);
+  if (!done.calendars) await markDone("calendars");
+
+  if (!done.review) {
+    if (!(await ranBefore("academic.bootstrap", "Calendar review%"))) await reviewLeftovers2026(actor, log);
+    await markDone("review");
+  }
 
   /* ---- 2. first conference ---- */
+  if (done.conference) return;
   const existing = await db.select({ id: events.id }).from(events).where(inArray(events.embedUrl, [LUMA])).limit(1);
-  if (existing.length === 0) {
+  if (existing.length === 0 && !(await ranBefore("event.create", `%${TITLE}%`))) {
     const [conference] = await db.select().from(categories).where(eq(categories.name, "Conference"));
     if (!conference) return log("• First conference skipped: no “Conference” category.");
     let [speaker] = await db.select().from(speakers).where(eq(speakers.name, "Philippe Heim"));
@@ -77,7 +106,7 @@ export async function runBootstrap2026(log: (m: string) => void = console.log) {
         .returning();
     }
     const { event } = await createEvent(actor, {
-      title: "Philippe Heim – Conference Q&A",
+      title: TITLE,
       categoryId: conference.id,
       speakerId: speaker.id,
       status: "confirmed",
@@ -92,6 +121,7 @@ export async function runBootstrap2026(log: (m: string) => void = console.log) {
     });
     log(`✓ Created “${event.title}” (confirmed, not published — publish it from its page)`);
   }
+  await markDone("conference");
 }
 
 /**

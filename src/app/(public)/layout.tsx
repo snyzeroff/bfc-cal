@@ -27,7 +27,7 @@ export default async function PublicLayout({ children }: { children: React.React
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-6 text-xs text-ink-3 sm:px-6">
           <span>{appearance.orgName} · CentraleSupélec</span>
-          <span>All times are Paris time (Europe/Paris)</span>
+          <span>Paris time (Europe/Paris)</span>
         </div>
       </footer>
     </div>

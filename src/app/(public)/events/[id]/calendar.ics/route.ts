@@ -15,7 +15,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     events: [
       {
         uid: `event-${e.id}@bfc-calendar`,
-        title: e.title,
+        title: e.status === "postponed" ? `Postponed: ${e.title}` : e.title,
         description: [e.description, `Details: ${appUrl()}/events/${e.id}`].filter(Boolean).join("\n\n"),
         location: e.location,
         url: `${appUrl()}/events/${e.id}`,
@@ -24,7 +24,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
         allDay: e.allDay,
         startDay: d.start,
         endDayExclusive: addDays(d.end, 1),
-        status: e.status === "cancelled" ? "CANCELLED" : "CONFIRMED",
+        status: e.status === "cancelled" ? "CANCELLED" : e.status === "postponed" ? "TENTATIVE" : "CONFIRMED",
         sequence: e.sequence,
         createdAt: e.createdAt,
         updatedAt: e.updatedAt,

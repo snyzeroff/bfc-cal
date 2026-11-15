@@ -10,7 +10,7 @@ export async function resetDb() {
   await sql.unsafe(`TRUNCATE ${[
     "audit_log", "attachments", "comments", "tasks", "event_organizers", "event_proposals", "events", "speakers", "templates",
     "import_candidates", "academic_entries", "academic_imports", "academic_layers", "restriction_rules", "settings",
-    "feed_tokens", "invite_tokens", "sessions", "login_attempts", "users", "categories",
+    "feed_tokens", "invite_tokens", "sessions", "login_attempts", "signup_links", "users", "categories",
   ].join(", ")} RESTART IDENTITY CASCADE`);
   await ensureBaseData();
 }

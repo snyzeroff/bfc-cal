@@ -4,8 +4,9 @@ import { loadCalendarData } from "@/lib/board-data";
 const cell = (v: unknown) => {
   let s = v === null || v === undefined ? "" : String(v);
   // Neutralise spreadsheet formula injection.
-  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-  return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  s = s.replace(/\r\n?|\n/g, " ");
+  if (/^[=+\-@\t]/.test(s)) s = `'${s}`;
+  return /[",;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
 export async function GET() {

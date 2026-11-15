@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { inviteTokens, users } from "@/db/schema";
+import { inviteTokens, sessions, users } from "@/db/schema";
 import { run } from "@/lib/action";
 import { audit } from "@/lib/audit";
 import { MIN_PASSWORD_LENGTH, hashPassword, hashToken } from "@/lib/auth/crypto";
@@ -41,6 +41,8 @@ export async function acceptInviteAction(input: { token: string; password: strin
     await db.transaction(async (tx) => {
       await tx.update(users).set({ passwordHash: await hashPassword(password), updatedAt: new Date() }).where(eq(users.id, row.user.id));
       await tx.update(inviteTokens).set({ usedAt: new Date() }).where(eq(inviteTokens.userId, row.user.id));
+      // A new password ends every earlier session: a reset must lock out whoever had the old one.
+      await tx.delete(sessions).where(eq(sessions.userId, row.user.id));
       await audit({ actor: row.user, action: "user.password_set", entityType: "user", entityId: row.user.id, summary: `${row.user.name} set their password` }, tx);
     });
     await createSession(row.user.id);
@@ -52,11 +54,19 @@ export async function acceptInviteAction(input: { token: string; password: strin
  * First-run setup: creates the first Super Admin. Only works while the
  * database has no user at all; afterwards accounts come from invitations.
  */
-export async function setupAction(input: { name: string; email: string; password: string }) {
+export async function setupAction(input: { name: string; email: string; password: string; setupToken?: string }) {
   return run(async () => {
-    const data = z
-      .object({ name: z.string().trim().min(1, "Enter your name").max(80), email: z.string().trim().toLowerCase().email("Enter a valid email").max(200), password: z.string().max(200) })
+    const { setupToken, ...data } = z
+      .object({
+        name: z.string().trim().min(1, "Enter your name").max(80),
+        email: z.string().trim().toLowerCase().email("Enter a valid email").max(200),
+        password: z.string().max(200),
+        setupToken: z.string().max(200).optional(),
+      })
       .parse(input);
+    // When SETUP_TOKEN is configured, only someone who knows it can claim the first account.
+    const expected = process.env.SETUP_TOKEN;
+    if (expected && hashToken(setupToken ?? "") !== hashToken(expected)) throw new AppError("forbidden", "Incorrect setup code.");
     if (data.password.length < MIN_PASSWORD_LENGTH) throw new AppError("invalid", `Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`);
     const { ensureBaseData } = await import("@/lib/bootstrap");
     const res = await ensureBaseData(data);

@@ -2,7 +2,8 @@ import type { AcademicKind, CategoryKind, EventStatus, Role } from "@/db/schema"
 
 /** JSON-safe shapes passed from server components to the board's client UI. Times are Paris wall-clock strings. */
 
-export type BoardUser = { id: string; name: string; email: string; role: Role; active: boolean };
+/** Other people as every board member sees them: no email address. */
+export type BoardUser = { id: string; name: string; role: Role; active: boolean };
 export type Me = { id: string; name: string; email: string; role: Role; isAdmin: boolean; isSuperAdmin: boolean };
 
 export type BoardCategory = { id: string; name: string; kind: CategoryKind; color: string; icon: string; archived: boolean };
@@ -30,7 +31,7 @@ export type BoardEvent = {
   canEdit: boolean;
   archived: boolean;
   overrideReason: string | null;
-  /** Hard restriction this event currently violates (after a rule or Victoriales change), if any. */
+  /** Hard restriction this event currently violates (after a rule or calendar change), if any. */
   violation: string | null;
   openTasks: number;
   totalTasks: number;
@@ -79,7 +80,6 @@ export type BoardWindow = {
   message: string;
 };
 
-export type BoardVictoriales = { id: string; label: string; date: string | null; endDate: string | null };
 
 export type BoardSpeakerLite = { id: string; name: string; organization: string };
 
@@ -91,7 +91,6 @@ export type CalendarData = {
   layers: BoardLayer[];
   academic: BoardAcademic[];
   windows: BoardWindow[];
-  victoriales: BoardVictoriales[];
   categories: BoardCategory[];
   users: BoardUser[];
   speakers: BoardSpeakerLite[];

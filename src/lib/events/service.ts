@@ -48,6 +48,10 @@ const FEED_FIELDS = [
   "isPublic",
 ] as const;
 
+/** Everything the members site or feed shows: on a published event, only admins may change these. */
+const PUBLIC_FIELDS = [...FEED_FIELDS, "embedUrl", "color", "audience"] as const;
+const MEMBERS_SEE = "This event is published. Ask a Board Admin to change what members see.";
+
 const NEEDS_DATE: EventStatus[] = ["confirmed", "published", "completed"];
 /** Statuses in which a dated event does not occupy the calendar any more. */
 const INACTIVE: EventStatus[] = ["cancelled", "postponed", "completed"];
@@ -277,9 +281,6 @@ export async function updateEvent(
     if (ev.isPublic && !canPublish(actor)) {
       throw new AppError("forbidden", "Only a Board Admin can change the status of a published event.");
     }
-    if (NEEDS_DATE.includes(next.status) && !next.startAt) {
-      throw new AppError("invalid", "Set a date before marking this event as confirmed.");
-    }
     if (ev.isPublic && !PUBLIC_STATUSES.includes(next.status)) {
       // Moving a public event back to a planning status takes it off the members calendar.
       set.isPublic = false;
@@ -287,13 +288,16 @@ export async function updateEvent(
     }
     set.cancelledAt = next.status === "cancelled" ? new Date() : null;
   }
+  if (NEEDS_DATE.includes(next.status) && !next.startAt) {
+    throw new AppError("invalid", "A confirmed event needs a date. Change its status first.");
+  }
   if (ev.isPublic && !next.startAt) {
     throw new AppError("invalid", "A published event needs a date. Unpublish it first.");
   }
   if (fields.featured !== undefined && fields.featured !== ev.featured && !canPublish(actor)) {
     throw new AppError("forbidden", "Only a Board Admin can feature an event at the top of the members site.");
   }
-  if (fields.scheduledPublishAt && !canPublish(actor)) {
+  if (fields.scheduledPublishAt && fields.scheduledPublishAt.getTime() !== ev.scheduledPublishAt?.getTime() && !canPublish(actor)) {
     throw new AppError("forbidden", "Only a Board Admin can schedule publication.");
   }
 
@@ -315,6 +319,9 @@ export async function updateEvent(
 
   const changes = diff(ev as unknown as Record<string, unknown>, set as Record<string, unknown>, ["overrideBy", "cancelledAt"]);
   const feedChanged = FEED_FIELDS.some((f) => f in changes);
+  if (ev.isPublic && !canPublish(actor) && PUBLIC_FIELDS.some((f) => f in changes)) {
+    throw new AppError("forbidden", MEMBERS_SEE);
+  }
 
   const updated = await db.transaction(async (tx) => {
     const [row] = await tx
@@ -450,9 +457,9 @@ export async function publishDueEvents(now = new Date()): Promise<number> {
     try {
       await publishInternal(null, id);
       n++;
-    } catch {
-      // Not publishable any more (e.g. date removed): drop the schedule rather than retry forever.
-      await db.update(events).set({ scheduledPublishAt: null }).where(eq(events.id, id));
+    } catch (e) {
+      // Not publishable any more (e.g. date removed): drop the schedule. Anything else is retried next run.
+      if (e instanceof AppError) await db.update(events).set({ scheduledPublishAt: null }).where(eq(events.id, id));
     }
   }
   return n;
@@ -477,7 +484,7 @@ export async function addProposal(
       .returning();
     // An idea with candidate dates has become a proposal.
     if (current.event.status === "idea") {
-      await tx.update(events).set({ status: "proposed", version: current.event.version + 1, updatedAt: new Date(), updatedBy: actor.id }).where(eq(events.id, eventId));
+      await tx.update(events).set({ status: "proposed", version: dsql`${events.version} + 1`, updatedAt: new Date(), updatedBy: actor.id }).where(eq(events.id, eventId));
     }
     await audit(
       { actor, action: "proposal.add", entityType: "event", entityId: eventId, summary: `Proposed a date for “${current.event.title}”`, changes: { proposal: [null, input.startAt.toISOString()] }, reason: r.override },
@@ -525,6 +532,7 @@ export async function confirmProposal(actor: ActorUser, proposalId: string, opts
   const current = await loadEvent(p.eventId);
   assertEditable(actor, current);
   const ev = current.event;
+  if (ev.isPublic && !canPublish(actor)) throw new AppError("forbidden", MEMBERS_SEE);
   if (opts.expectedVersion !== undefined && opts.expectedVersion !== ev.version) throw await conflictError(ev);
   if (p.state !== "active") throw new AppError("invalid", "This date is no longer an active proposal.");
   if (p.availability === "unavailable") {
@@ -691,7 +699,7 @@ export async function removeAttachment(actor: ActorUser, attachmentId: string) {
   await audit({ actor, action: "attachment.remove", entityType: "event", entityId: a.eventId, summary: `Removed attachment “${a.name}”` });
 }
 
-/** Scheduled events that currently sit inside a hard-restricted window (e.g. after the Victoriales date moved). */
+/** Scheduled events that currently sit inside a hard-restricted window (e.g. after exam dates changed). */
 export async function findRestrictedEvents() {
   const ctx = await loadPlanningContext();
   const rows = await db

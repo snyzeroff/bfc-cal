@@ -26,9 +26,9 @@ export default async function Dashboard() {
   const hasExams = data.academic.some((a) => a.kind === "exam");
 
   const attention: { key: string; icon: React.ReactNode; tone: string; text: React.ReactNode; href: string }[] = [
-    ...violating.map((e) => ({ key: `v${e.id}`, icon: <ShieldAlert />, tone: "text-danger", text: <><strong className="font-medium">{e.title}</strong> is scheduled inside a restricted period.</>, href: `/board/events/${e.id}` })),
+    ...violating.map((e) => ({ key: `v${e.id}`, icon: <ShieldAlert />, tone: "text-danger", text: <><strong className="font-medium">{e.title}</strong> is in a restricted period.</>, href: `/board/events/${e.id}` })),
     ...(overdue.length ? [{ key: "overdue", icon: <TriangleAlert />, tone: "text-warn", text: <>{overdue.length} task{overdue.length > 1 ? "s are" : " is"} past the deadline.</>, href: "/board/tasks" }] : []),
-    ...(user.role !== "board_member" ? readyToPublish.map((e) => ({ key: `p${e.id}`, icon: <CalendarDays />, tone: "text-info", text: <><strong className="font-medium">{e.title}</strong> is confirmed but not published yet.</>, href: `/board/events/${e.id}` })) : []),
+    ...(user.role !== "board_member" ? readyToPublish.map((e) => ({ key: `p${e.id}`, icon: <CalendarDays />, tone: "text-info", text: <><strong className="font-medium">{e.title}</strong> is confirmed, not published.</>, href: `/board/events/${e.id}` })) : []),
     ...(pending && user.role !== "board_member" ? [{ key: "review", icon: <GraduationCap />, tone: "text-warn", text: <>{pending} imported academic period{pending > 1 ? "s" : ""} awaiting review.</>, href: "/board/academic" }] : []),
   ];
 
@@ -69,7 +69,7 @@ export default async function Dashboard() {
           <section>
             <SectionTitle action={<Link href="/board/calendar" className="text-xs text-ink-3 hover:text-ink">Open calendar</Link>}>Next up</SectionTitle>
             {upcoming.length === 0 ? (
-              <EmptyState icon={<CalendarDays className="h-5 w-5" />} title="Nothing scheduled">Confirmed and tentative events with a date will appear here.</EmptyState>
+              <EmptyState icon={<CalendarDays className="h-5 w-5" />} title="Nothing scheduled" />
             ) : (
               <Card className="divide-y divide-line">
                 {upcoming.slice(0, 6).map((e) => (
@@ -139,7 +139,7 @@ export default async function Dashboard() {
                       "No restricted period ahead."
                     ) : (
                       <>
-                        <span className="font-medium text-ink">No exam dates approved yet.</span> Conferences are closed during exams and the 21 days before; this needs the academic calendars.
+                        <span className="font-medium text-ink">No exam dates approved yet.</span> Restricted periods need the academic calendars.
                         {user.role !== "board_member" && <Link href="/board/academic" className="ml-1 text-brand-ink underline underline-offset-2">Import them</Link>}
                       </>
                     )}
@@ -152,7 +152,7 @@ export default async function Dashboard() {
           <section>
             <SectionTitle action={<Link href="/board/tasks" className="text-xs text-ink-3 hover:text-ink">All tasks</Link>}>My tasks</SectionTitle>
             {myTasks.length === 0 ? (
-              <EmptyState icon={<ListChecks className="h-5 w-5" />} title="You are all caught up">Tasks assigned to you will show up here.</EmptyState>
+              <EmptyState icon={<ListChecks className="h-5 w-5" />} title="No open tasks" />
             ) : (
               <TaskList tasks={myTasks.slice(0, 6)} users={data.users} canAdd={false} showEvent />
             )}

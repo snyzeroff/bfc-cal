@@ -43,7 +43,7 @@ export function AcademicManager({ layers, entries, imports }: { layers: BoardLay
     startUpload(async () => {
       const res = await importCalendarAction(fd);
       if (!res.ok) return void toast.error(res.error);
-      toast.success(`${res.data.count} periods extracted — review them before they are used.`);
+      toast.success(`${res.data.count} periods extracted. Review them before use.`);
       setImporting(false);
       router.push(`/board/academic/imports/${res.data.id}`);
     });
@@ -53,7 +53,7 @@ export function AcademicManager({ layers, entries, imports }: { layers: BoardLay
     <div className="mx-auto max-w-5xl">
       <PageHeader
         title="Academic calendars"
-        description="Teaching weeks, exams, holidays and school events for each program. These layers feed the calendar overlays, the scheduling rules and the date assistant. Only periods a board admin has approved are used."
+        description="Only approved periods are used."
         actions={
           me.isAdmin && (
             <>
@@ -68,16 +68,14 @@ export function AcademicManager({ layers, entries, imports }: { layers: BoardLay
         <div className="mb-6 flex flex-col gap-2">
           {pendingImports.map((i) => (
             <Callout key={i.id} tone="warn" icon={<FileUp />} title={`${i.pending} period${i.pending > 1 ? "s" : ""} from “${i.filename}” await review`} action={<Link href={`/board/academic/imports/${i.id}`} className="inline-flex items-center gap-1 text-[13px] font-medium text-ink underline-offset-2 hover:underline">Review <ArrowRight className="h-3.5 w-3.5" /></Link>}>
-              Extracted dates are not used anywhere until someone checks them against the original document.
+              Nothing is used until approved.
             </Callout>
           ))}
         </div>
       )}
 
       {layers.length === 0 ? (
-        <EmptyState icon={<GraduationCap className="h-5 w-5" />} title="No academic calendar yet" action={me.isAdmin && <Button variant="primary" onClick={() => setImporting(true)}><Upload className="h-4 w-4" /> Import a calendar</Button>}>
-          Import the official calendar PDF (or an .ics / .csv file). Each program and year becomes a layer you can show on the board calendar.
-        </EmptyState>
+        <EmptyState icon={<GraduationCap className="h-5 w-5" />} title="No academic calendar yet" action={me.isAdmin && <Button variant="primary" onClick={() => setImporting(true)}><Upload className="h-4 w-4" /> Import a calendar</Button>} />
       ) : (
         <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
           <section>
@@ -117,7 +115,7 @@ export function AcademicManager({ layers, entries, imports }: { layers: BoardLay
               {layer?.name}
             </SectionTitle>
             {shown.length === 0 ? (
-              <EmptyState title="No verified periods">{kind ? "Nothing of this kind in this layer." : "Approve imported periods or add them manually."}</EmptyState>
+              <EmptyState title="No verified periods" />
             ) : (
               <div className="overflow-hidden rounded-xl border border-line bg-surface">
                 <ul className="divide-y divide-line">
@@ -179,7 +177,7 @@ export function AcademicManager({ layers, entries, imports }: { layers: BoardLay
         open={importing}
         onOpenChange={setImporting}
         title="Import an academic calendar"
-        description="The file is read on the server. Extracted periods go to a review screen — nothing is added to the calendar automatically."
+        description="Nothing is added to the calendar until approved."
         footer={
           <>
             <Button variant="ghost" onClick={() => setImporting(false)}>Cancel</Button>
@@ -188,14 +186,14 @@ export function AcademicManager({ layers, entries, imports }: { layers: BoardLay
         }
       >
         <div className="flex flex-col gap-4">
-          <Field label="File" hint="PDF of the official year calendar, or an .ics / .csv file. 8 MB max.">
+          <Field label="File" hint="PDF, .ics or .csv. 8 MB max.">
             <input ref={fileRef} type="file" accept=".pdf,.ics,.csv,application/pdf,text/calendar,text/csv" className="block w-full rounded-lg border border-dashed border-line-strong bg-surface-2/50 p-3 text-[13px] file:mr-3 file:rounded-md file:border-0 file:bg-surface file:px-3 file:py-1.5 file:text-[13px] file:font-medium file:text-ink file:shadow-sm" />
           </Field>
-          <Field label="Layer name" optional hint="For .ics and .csv files only. PDF calendars create one layer per program and year (e.g. BoE Year 1).">
+          <Field label="Layer name" optional hint="For .ics and .csv only. PDFs create one layer per program and year.">
             <Input value={layerName} onChange={(e) => setLayerName(e.target.value)} placeholder="e.g. School-wide events" maxLength={80} />
           </Field>
           <Callout tone="info">
-            Reading a PDF is never perfect: merged cells and clipped text can shift a date. Every extracted period shows a confidence level and its source text so you can compare it with the document before approving.
+            PDF extraction can shift a date. Check each period against the document before approving.
           </Callout>
         </div>
       </Dialog>
@@ -218,7 +216,7 @@ export function AcademicManager({ layers, entries, imports }: { layers: BoardLay
           <div className="flex flex-col gap-4">
             <Field label="Name"><Input value={layerForm.name} onChange={(e) => setLayerForm({ ...layerForm, name: e.target.value })} autoFocus maxLength={80} /></Field>
             <div><p className="mb-2 text-xs font-medium text-ink-2">Colour</p><ColorField label="Layer colour" value={layerForm.color} onChange={(c) => setLayerForm({ ...layerForm, color: c })} /></div>
-            <Switch checked={layerForm.visibleByDefault} onCheckedChange={(v) => setLayerForm({ ...layerForm, visibleByDefault: v })} label="Shown by default" description="Each board member can still toggle it on their own calendar." />
+            <Switch checked={layerForm.visibleByDefault} onCheckedChange={(v) => setLayerForm({ ...layerForm, visibleByDefault: v })} label="Shown by default" description="Each member can still toggle it." />
           </div>
         </Dialog>
       )}
@@ -230,7 +228,7 @@ export function AcademicManager({ layers, entries, imports }: { layers: BoardLay
           onOpenChange={(o) => !o && setEntryForm(null)}
           size="sm"
           title={entryForm.id ? "Edit period" : "Add period"}
-          description="Saving records you as the person who verified these dates."
+          description="Saving records you as the verifier."
           footer={
             <>
               <Button variant="ghost" onClick={() => setEntryForm(null)}>Cancel</Button>

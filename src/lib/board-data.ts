@@ -13,7 +13,7 @@ import type { BoardAcademic, BoardEvent, BoardTask, CalendarData, EventDetail, M
 export const toMe = (u: SessionUser): Me => ({ id: u.id, name: u.name, email: u.email, role: u.role, isAdmin: isAdmin(u), isSuperAdmin: isSuperAdmin(u) });
 
 export const listUsers = cache(async () =>
-  db.select({ id: users.id, name: users.name, email: users.email, role: users.role, active: users.active }).from(users).orderBy(asc(users.name)),
+  db.select({ id: users.id, name: users.name, role: users.role, active: users.active }).from(users).orderBy(asc(users.name)),
 );
 
 export async function loadTasks(): Promise<BoardTask[]> {
@@ -138,7 +138,6 @@ export async function loadCalendarData(user: SessionUser, opts: { includeArchive
     layers: layerRows.map((l) => ({ id: l.id, key: l.key, name: l.name, program: l.program, yearGroup: l.yearGroup, color: l.color, visibleByDefault: l.visibleByDefault })),
     academic: ctx.academic.map((a) => ({ id: a.id, layerId: a.layerId, layerKey: a.layerKey, label: a.label, kind: a.kind as BoardAcademic["kind"], start: a.startDate, end: a.endDate })),
     windows: ctx.windows.map((w, i) => ({ key: `${w.ruleId}-${w.start}-${i}`, ruleId: w.ruleId, type: w.type, severity: w.severity, appliesTo: w.appliesTo, start: w.start, end: w.end, title: w.title, message: w.message })),
-    victoriales: ctx.victoriales.map((v) => ({ id: v.id, label: v.label, date: v.date, endDate: v.endDate ?? null })),
     categories: categoryRows.map((c) => ({ id: c.id, name: c.name, kind: c.kind, color: c.color, icon: c.icon, archived: c.archived })),
     users: userRows,
     speakers: speakerRows,

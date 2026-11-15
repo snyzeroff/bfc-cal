@@ -46,7 +46,7 @@ test.describe("accessibility (axe, WCAG 2.1 AA)", () => {
     test(`board pages — ${theme}`, async ({ page }) => {
       await page.emulateMedia({ colorScheme: theme });
       await login(page, "superAdmin");
-      for (const path of ["/board", "/board/calendar", "/board/events", "/board/speakers", "/board/tasks", "/board/academic", "/board/subscriptions", "/board/settings", "/board/settings?tab=appearance", "/board/settings?tab=users"]) {
+      for (const path of ["/board", "/board/calendar", "/board/events", "/board/speakers", "/board/tasks", "/board/academic", "/board/subscriptions", "/board/settings", "/board/settings?tab=appearance", "/board/settings?tab=users", "/board/profile"]) {
         await page.goto(path);
         await page.waitForLoadState("networkidle");
         await scan(page, `${path} [${theme}]`);

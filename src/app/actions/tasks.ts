@@ -41,17 +41,26 @@ export async function createTaskAction(input: z.input<typeof taskSchema>) {
   });
 }
 
-export async function updateTaskAction(taskId: string, input: Partial<z.input<typeof taskSchema>>) {
+/** No defaults here: a patch must only touch the fields it names. */
+const taskPatch = z
+  .object({
+    title: z.string().trim().min(1, "A title is required").max(200),
+    notes: z.string().max(2000),
+    dueDate: z.string().refine(isValidDateIso, "Invalid date").nullable(),
+    assigneeId: id.nullable(),
+  })
+  .partial();
+
+export async function updateTaskAction(taskId: string, input: z.input<typeof taskPatch>) {
   return run(async () => {
     const actor = await requireActor();
-    const patch = taskSchema.partial().parse(input);
+    const patch = taskPatch.parse(input);
     const [task] = await db.select().from(tasks).where(eq(tasks.id, id.parse(taskId)));
     if (!task) throw new AppError("not_found", "This task no longer exists.");
     if (!canEditTask(actor, task)) throw new AppError("forbidden", "You can only edit tasks assigned to you.");
     if (patch.assigneeId !== undefined && patch.assigneeId !== task.assigneeId && patch.assigneeId !== actor.id && !canAssignTasks(actor)) {
       throw new AppError("forbidden", "Only a Board Admin can assign tasks to other people.");
     }
-    delete patch.eventId;
     await db.update(tasks).set({ ...patch, updatedAt: new Date() }).where(eq(tasks.id, task.id));
     return undefined;
   });

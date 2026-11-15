@@ -53,9 +53,7 @@ export function Pipeline({ events, users, categories }: { events: BoardEvent[]; 
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState icon={scope === "archived" ? <Archive className="h-5 w-5" /> : <Ticket className="h-5 w-5" />} title={scope === "archived" ? "The archive is empty" : events.length ? "No event matches these filters" : "No events yet"}>
-          {events.length ? "Try another search or scope." : "Create the first conference proposal with “New event”."}
-        </EmptyState>
+        <EmptyState icon={scope === "archived" ? <Archive className="h-5 w-5" /> : <Ticket className="h-5 w-5" />} title={scope === "archived" ? "The archive is empty" : events.length ? "No event matches these filters" : "No events yet"} />
       ) : layout === "board" && scope !== "archived" ? (
         <>
           <div className="scroll-thin -mx-4 hidden gap-3 overflow-x-auto px-4 pb-3 md:flex lg:-mx-8 lg:px-8">

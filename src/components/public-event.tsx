@@ -8,7 +8,7 @@ import { formatRange } from "@/lib/time";
 
 const STATE: Record<string, { label: string; cls: string } | undefined> = {
   cancelled: { label: "Cancelled", cls: "bg-danger-soft text-danger" },
-  postponed: { label: "Postponed — new date to be announced", cls: "bg-warn-soft text-warn" },
+  postponed: { label: "Postponed", cls: "bg-warn-soft text-warn" },
   completed: { label: "Past event", cls: "bg-surface-2 text-ink-3" },
 };
 
@@ -55,7 +55,7 @@ export function PublicEventView({ event, compact }: { event: PublicEventJson; co
       {event.embedUrl && !cancelled && event.status !== "completed" && (
         <section aria-label="Registration">
           <h2 className="mb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-3">Register</h2>
-          <EventEmbed url={event.embedUrl} title={event.title} className="max-w-[600px]" />
+          <EventEmbed url={event.embedUrl} title={event.title} />
         </section>
       )}
 

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Dialog as RDialog, DropdownMenu as RMenu, Popover as RPopover, Switch as RSwitch, Tabs as RTabs, Tooltip as RTooltip } from "radix-ui";
+import { Dialog as RDialog, DropdownMenu as RMenu, Popover as RPopover, Select as RSelect, Switch as RSwitch, Tabs as RTabs, Tooltip as RTooltip } from "radix-ui";
 import { Check, ChevronDown, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { buttonClass, type ButtonVariant, type ButtonSize } from "./button-class";
@@ -46,19 +46,92 @@ export const Textarea = React.forwardRef<HTMLTextAreaElement, React.TextareaHTML
   },
 );
 
-export const Select = React.forwardRef<HTMLSelectElement, React.SelectHTMLAttributes<HTMLSelectElement>>(function Select(
-  { className, children, ...props },
-  ref,
-) {
+type Option = { value: string; label: string; disabled?: boolean };
+
+/** Reads `<option>` children, so call sites look the same as with a native select. */
+function readOptions(children: React.ReactNode): Option[] {
+  const out: Option[] = [];
+  React.Children.forEach(children, (child) => {
+    if (!React.isValidElement(child)) return;
+    const props = child.props as { value?: string | number; children?: React.ReactNode; disabled?: boolean };
+    if (child.type === "option") {
+      const label = React.Children.toArray(props.children).join("");
+      out.push({ value: String(props.value ?? label), label, disabled: props.disabled });
+    } else if (props.children) {
+      out.push(...readOptions(props.children));
+    }
+  });
+  return out;
+}
+
+// Radix reserves the empty string for "no value"; ours is a real choice ("Unassigned", "Anyone"…).
+const EMPTY = "__empty__";
+
+type SelectProps = {
+  value?: string | number;
+  onChange?: (e: { target: { value: string } }) => void;
+  children: React.ReactNode;
+  className?: string;
+  disabled?: boolean;
+  id?: string;
+  "aria-label"?: string;
+  "aria-describedby"?: string;
+  /** A small visual in front of each choice, e.g. an avatar. */
+  optionIcon?: (value: string) => React.ReactNode;
+};
+
+export function Select({ value, onChange, children, className, disabled, optionIcon, ...aria }: SelectProps) {
+  const options = readOptions(children);
+  const current = String(value ?? "");
+  const selected = options.find((o) => o.value === current);
   return (
-    <div className="relative">
-      <select ref={ref} className={cn(fieldBase, "h-9 appearance-none pr-8", className)} {...props}>
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-3" aria-hidden />
-    </div>
+    <RSelect.Root value={current || EMPTY} onValueChange={(v) => onChange?.({ target: { value: v === EMPTY ? "" : v } })} disabled={disabled}>
+      <RSelect.Trigger
+        {...aria}
+        className={cn(
+          fieldBase,
+          "group flex h-9 items-center justify-between gap-2 text-left data-[state=open]:border-brand-ink data-[state=open]:ring-2 data-[state=open]:ring-brand-ink/15 disabled:cursor-not-allowed",
+          className,
+        )}
+      >
+        <span className="flex min-w-0 items-center gap-2">
+          {optionIcon?.(current)}
+          <span className="truncate">
+            <RSelect.Value>{selected?.label ?? ""}</RSelect.Value>
+          </span>
+        </span>
+        <RSelect.Icon>
+          <ChevronDown className="h-3.5 w-3.5 shrink-0 text-ink-3 transition-transform duration-200 group-data-[state=open]:rotate-180" aria-hidden />
+        </RSelect.Icon>
+      </RSelect.Trigger>
+      <RSelect.Portal>
+        <RSelect.Content
+          position="popper"
+          sideOffset={6}
+          collisionPadding={8}
+          className="select-pop z-[70] max-h-[min(320px,var(--radix-select-content-available-height))] min-w-[max(var(--radix-select-trigger-width),150px)] overflow-hidden rounded-xl border border-line bg-surface shadow-lg"
+        >
+          <RSelect.Viewport className="scroll-thin p-1">
+            {options.map((o) => (
+              <RSelect.Item
+                key={o.value}
+                value={o.value || EMPTY}
+                disabled={o.disabled}
+                className="relative flex cursor-pointer select-none items-center gap-2 rounded-lg py-1.5 pl-2.5 pr-8 text-[13px] text-ink !outline-none transition-colors duration-100 data-[disabled]:cursor-not-allowed data-[highlighted]:bg-surface-2 data-[state=checked]:font-medium data-[disabled]:opacity-45"
+              >
+                {optionIcon?.(o.value)}
+                <RSelect.ItemText>{o.label}</RSelect.ItemText>
+                <RSelect.ItemIndicator className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                  <Check className="h-3.5 w-3.5 text-brand-ink" aria-hidden />
+                </RSelect.ItemIndicator>
+              </RSelect.Item>
+            ))}
+          </RSelect.Viewport>
+        </RSelect.Content>
+      </RSelect.Portal>
+    </RSelect.Root>
   );
-});
+}
 
 export function Field({
   label,
@@ -330,15 +403,15 @@ export function Dialog({
   return (
     <RDialog.Root open={open} onOpenChange={onOpenChange}>
       <RDialog.Portal>
-        <RDialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[1px] animate-in" />
+        <RDialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[1px] data-[state=closed]:animate-out data-[state=open]:animate-in" />
         <RDialog.Content
           aria-describedby={description ? undefined : undefined}
           className={cn(
             "fixed z-50 flex flex-col bg-surface shadow-lg focus:outline-none",
             side === "right"
-              ? "inset-x-0 bottom-0 max-h-[92dvh] rounded-t-2xl animate-up sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[460px] sm:rounded-none sm:border-l sm:border-line sm:animate-sheet"
+              ? "inset-x-0 bottom-0 max-h-[92dvh] rounded-t-2xl data-[state=closed]:animate-down-out data-[state=open]:animate-up sm:inset-y-0 sm:left-auto sm:right-0 sm:max-h-none sm:w-[460px] sm:rounded-none sm:border-l sm:border-line sm:data-[state=closed]:animate-sheet-out sm:data-[state=open]:animate-sheet"
               : cn(
-                  "inset-x-0 bottom-0 max-h-[92dvh] rounded-t-2xl animate-up sm:inset-auto sm:left-1/2 sm:top-1/2 sm:max-h-[86dvh] sm:w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-line sm:animate-pop",
+                  "inset-x-0 bottom-0 max-h-[92dvh] rounded-t-2xl data-[state=closed]:animate-down-out data-[state=open]:animate-up sm:inset-auto sm:left-1/2 sm:top-1/2 sm:max-h-[86dvh] sm:w-[calc(100vw-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:border sm:border-line sm:data-[state=closed]:animate-pop-out sm:data-[state=open]:animate-pop",
                   size === "sm" && "sm:max-w-sm",
                   size === "md" && "sm:max-w-lg",
                   size === "lg" && "sm:max-w-2xl",
@@ -387,7 +460,7 @@ export function Menu({
         <RMenu.Content
           align={align}
           sideOffset={6}
-          className="z-[60] min-w-[190px] rounded-xl border border-line bg-surface p-1 shadow-lg animate-pop"
+          className="menu-pop z-[60] min-w-[190px] rounded-xl border border-line bg-surface p-1 shadow-lg"
         >
           {children}
         </RMenu.Content>
@@ -460,7 +533,7 @@ export function Popover({
           align={align}
           sideOffset={6}
           collisionPadding={12}
-          className={cn("z-[60] w-72 rounded-xl border border-line bg-surface p-3 shadow-lg animate-pop focus:outline-none", className)}
+          className={cn("z-[60] w-72 rounded-xl border border-line bg-surface p-3 shadow-lg focus:outline-none", "menu-pop", className)}
         >
           {children}
         </RPopover.Content>

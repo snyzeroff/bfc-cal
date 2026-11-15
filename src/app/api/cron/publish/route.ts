@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { publishDueEvents } from "@/lib/events/service";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +7,8 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
   const given = req.headers.get("authorization")?.replace(/^Bearer /, "") ?? "";
-  const ok = !!secret && given.length === secret.length && timingSafeEqual(Buffer.from(given), Buffer.from(secret));
+  const digest = (v: string) => createHash("sha256").update(v).digest();
+  const ok = !!secret && timingSafeEqual(digest(given), digest(secret));
   if (!ok) return new Response("Unauthorized", { status: 401 });
   return Response.json({ published: await publishDueEvents() });
 }

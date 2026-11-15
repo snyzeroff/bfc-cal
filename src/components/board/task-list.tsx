@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useOptimistic, useState, useTransition } from "react";
-import { Check, ListChecks, Plus, Trash2 } from "lucide-react";
+import { Check, ListChecks, Plus, Trash2, UserRound } from "lucide-react";
 import { createTaskAction, deleteTaskAction, toggleTaskAction, updateTaskAction } from "@/app/actions/tasks";
 import { Avatar, Button, EmptyState, Input, Select } from "@/components/ui";
 import type { BoardTask, BoardUser } from "@/lib/board-types";
@@ -35,6 +35,16 @@ export function TaskList({
   emptyText?: string;
 }) {
   const { me } = useBoard();
+  const personIcon = (id: string) => {
+    const u = users.find((x) => x.id === id);
+    return u ? (
+      <Avatar name={u.name} size={18} />
+    ) : (
+      <span className="grid h-[18px] w-[18px] shrink-0 place-items-center rounded-full border border-dashed border-line-strong text-ink-3">
+        <UserRound className="h-2.5 w-2.5" aria-hidden />
+      </span>
+    );
+  };
   const { mutate, busy, dialog } = useMutate();
   const [, start] = useTransition();
   const [optimistic, setOptimistic] = useOptimistic(tasks, (state, patch: { id: string; done: boolean }) => state.map((t) => (t.id === patch.id ? { ...t, done: patch.done } : t)));
@@ -98,7 +108,7 @@ export function TaskList({
                   </p>
                 </div>
                 {editable && me.isAdmin ? (
-                  <Select aria-label="Assignee" value={t.assigneeId ?? ""} onChange={(e) => mutate(() => updateTaskAction(t.id, { assigneeId: e.target.value || null }))} className="h-7 w-[132px] text-xs">
+                  <Select aria-label="Assignee" value={t.assigneeId ?? ""} optionIcon={personIcon} onChange={(e) => mutate(() => updateTaskAction(t.id, { assigneeId: e.target.value || null }))} className="h-8 w-[150px] px-2 text-xs">
                     <option value="">Unassigned</option>
                     {users.filter((u) => u.active || u.id === t.assigneeId).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </Select>
@@ -135,7 +145,7 @@ export function TaskList({
           <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Add a task…" aria-label="New task" className="min-w-[180px] flex-1" maxLength={200} />
           <Input type="date" value={due} onChange={(e) => setDue(e.target.value)} aria-label="Deadline" className="w-[150px]" />
           {me.isAdmin && (
-            <Select value={assignee} onChange={(e) => setAssignee(e.target.value)} aria-label="Assign to" className="w-[150px]">
+            <Select value={assignee} onChange={(e) => setAssignee(e.target.value)} optionIcon={personIcon} aria-label="Assign to" className="w-[170px]">
               <option value="">Unassigned</option>
               {users.filter((u) => u.active).map((u) => <option key={u.id} value={u.id}>{u.id === me.id ? "Me" : u.name}</option>)}
             </Select>

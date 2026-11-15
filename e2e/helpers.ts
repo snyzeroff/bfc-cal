@@ -1,4 +1,4 @@
-import { expect, type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { USERS } from "./global-setup";
 
 export { USERS };
@@ -23,3 +23,9 @@ export function futureWeekday(min: number): string {
 }
 
 export const addDays = (iso: string, n: number) => new Date(Date.parse(`${iso}T12:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
+
+/** Picks a choice in one of the app's dropdowns (the list opens in a layer above the page). */
+export async function choose(select: Locator, option: string) {
+  await select.click();
+  await select.page().getByRole("option", { name: option, exact: true }).click();
+}

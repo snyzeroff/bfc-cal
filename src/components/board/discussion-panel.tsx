@@ -22,7 +22,7 @@ export function DiscussionPanel({ detail, readOnly }: { detail: EventDetail; rea
       <section>
         <SectionTitle>Internal comments</SectionTitle>
         {detail.comments.length === 0 ? (
-          <EmptyState icon={<MessageSquare className="h-5 w-5" />} title="No comments yet">Keep the speaker follow-up and decisions here so the whole board has the context.</EmptyState>
+          <EmptyState icon={<MessageSquare className="h-5 w-5" />} title="No comments yet" />
         ) : (
           <ul className="flex flex-col gap-4">
             {detail.comments.map((c) => (
@@ -54,7 +54,7 @@ export function DiscussionPanel({ detail, readOnly }: { detail: EventDetail; rea
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) send();
             }}
-            placeholder="Write a comment… (visible to the board only)"
+            placeholder="Write a comment…"
             aria-label="Comment"
             className="min-h-[60px]"
             maxLength={4000}
@@ -67,7 +67,7 @@ export function DiscussionPanel({ detail, readOnly }: { detail: EventDetail; rea
 
       <section>
         <SectionTitle>Attachments</SectionTitle>
-        <p className="mb-3 text-xs text-ink-3">Links to documents (Drive, Notion, slides). Board only.</p>
+        <p className="mb-3 text-xs text-ink-3">Links to documents. Board only.</p>
         {detail.attachments.length === 0 ? (
           <p className="flex items-center gap-2 rounded-lg border border-dashed border-line-strong px-3 py-4 text-xs text-ink-3"><Paperclip className="h-3.5 w-3.5" /> Nothing attached</p>
         ) : (

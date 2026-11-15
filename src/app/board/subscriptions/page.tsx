@@ -18,7 +18,7 @@ export default async function SubscriptionsPage() {
   ]);
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader title="Calendar subscriptions" description="See BFC events in your own calendar app. Subscriptions update by themselves — there is nothing to re-import when an event changes." />
+      <PageHeader title="Calendar subscriptions" description="See events in your own calendar app." />
       <Subscriptions
         publicUrl={`${appUrl()}/feeds/public.ics`}
         shortName={appearance.shortName}

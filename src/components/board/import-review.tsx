@@ -96,7 +96,7 @@ export function ImportReview({
 
       <div className="mb-5 flex flex-col gap-2">
         <Callout tone="info" icon={<ShieldCheck />} title="Compare with the original document before approving">
-          Dates were read automatically from the {imp.format.toUpperCase()} and may be wrong, especially where cells are merged or text is clipped. Only approved rows are used by the calendar, the rules and the assistant. Correct a row by editing it directly — your edit is saved immediately.
+          Dates were read automatically and may be wrong. Only approved rows are used. Edits save immediately.
         </Callout>
         {imp.warnings.map((w, i) => (
           <Callout key={i} tone="warn" icon={<CircleAlert />}>{w}</Callout>
@@ -135,13 +135,11 @@ export function ImportReview({
         <Button size="sm" variant="ghost" onClick={() => setSelected(new Set(selectable.filter((r) => r.confidence >= HIGH).map((r) => r.id)))}>Select high-confidence ({selectable.filter((r) => r.confidence >= HIGH).length})</Button>
         <span className="flex-1" />
         <Button size="sm" variant="outline" disabled={!chosen.length} loading={busy} onClick={() => decide(chosen, "reject", "Rows rejected")}><X className="h-3.5 w-3.5" /> Reject</Button>
-        <Button size="sm" variant="primary" disabled={!chosen.length} loading={busy} onClick={() => decide(chosen, "approve", `Approved ${chosen.length} period${chosen.length > 1 ? "s" : ""} — now used across the calendar`)}><Check className="h-3.5 w-3.5" /> Approve selected</Button>
+        <Button size="sm" variant="primary" disabled={!chosen.length} loading={busy} onClick={() => decide(chosen, "approve", `Approved ${chosen.length} period${chosen.length > 1 ? "s" : ""}`)}><Check className="h-3.5 w-3.5" /> Approve selected</Button>
       </div>
 
       {rows.length === 0 ? (
-        <EmptyState icon={<Check className="h-5 w-5" />} title={view === "pending" ? "Everything has been reviewed" : "No rows here"}>
-          {view === "pending" ? "Approved periods are now available as layers on the board calendar." : "Change the filters above."}
-        </EmptyState>
+        <EmptyState icon={<Check className="h-5 w-5" />} title={view === "pending" ? "Everything has been reviewed" : "No rows here"} />
       ) : (
         <ul className="flex flex-col gap-1.5">
           {rows.map((c) => {

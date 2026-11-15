@@ -15,7 +15,7 @@ export default async function EventsPage() {
     <div>
       <PageHeader
         title="Conferences & events"
-        description="Every event from first idea to publication. Nothing reaches the members calendar until a Board Admin publishes it."
+        description="Nothing is public until a Board Admin publishes it."
         actions={
           <>
             <a href="/board/events/export" className={buttonClass("outline")} download>

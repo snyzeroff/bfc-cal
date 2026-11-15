@@ -120,6 +120,11 @@
   --animate-pop: pop-in 0.16s cubic-bezier(0.2, 0.9, 0.3, 1.1);
   --animate-sheet: sheet-in 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
   --animate-up: up-in 0.24s cubic-bezier(0.2, 0.8, 0.2, 1);
+  /* Exits are quicker than entrances and never bounce. */
+  --animate-out: fade-out 0.14s ease-in forwards;
+  --animate-pop-out: pop-out 0.12s ease-in forwards;
+  --animate-sheet-out: sheet-out 0.16s ease-in forwards;
+  --animate-down-out: down-out 0.16s ease-in forwards;
 }
 
 @keyframes fade-in {
@@ -133,6 +138,31 @@
 }
 @keyframes up-in {
   from { transform: translateY(16px); opacity: 0; }
+}
+
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+@keyframes pop-out {
+  to { opacity: 0; transform: scale(0.98); }
+}
+@keyframes sheet-out {
+  to { transform: translateX(24px); opacity: 0; }
+}
+@keyframes down-out {
+  to { transform: translateY(16px); opacity: 0; }
+}
+/* Menus and choice lists grow from the control that opened them. */
+@keyframes menu-in {
+  from { opacity: 0; transform: scale(0.96); }
+}
+.menu-pop,
+.select-pop {
+  transform-origin: var(--radix-dropdown-menu-content-transform-origin, var(--radix-popover-content-transform-origin, var(--radix-select-content-transform-origin, top)));
+  animation: menu-in 0.14s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.menu-pop[data-state="closed"] {
+  animation: pop-out 0.1s ease-in forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -607,4 +637,31 @@ a, button, [role="button"], input, select, textarea, summary {
 }
 .ev-chip {
   width: 100%;
+}
+
+/* ------------------------------------------------------- registration widget
+   Luma's widget, measured 15 Nov 2026: one column up to 648px wide (cover as wide as
+   the frame up to 430px, then a fixed 300px cover: 742px tall), two columns from 664px
+   (451–506px tall). The frame only ever takes widths that were measured. */
+.embed {
+  container-type: inline-size;
+}
+.embed iframe {
+  width: min(100%, 430px);
+  height: calc(min(100cqw, 430px) + 440px);
+}
+@container (min-width: 648px) {
+  .embed iframe {
+    width: 648px;
+    height: 746px;
+  }
+}
+.embed-wide iframe {
+  margin-inline: auto;
+}
+@container (min-width: 664px) {
+  .embed-wide iframe {
+    width: 100%;
+    height: 512px;
+  }
 }

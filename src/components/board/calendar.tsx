@@ -29,7 +29,8 @@ const FC_VIEW: Record<Exclude<View, "timeline">, string> = { month: "dayGridMont
 type Filters = { categories: string[]; statuses: EventStatus[]; visibility: "all" | "public" | "private"; organizer: string; speaker: string; program: string; q: string };
 const NO_FILTERS: Filters = { categories: [], statuses: [], visibility: "all", organizer: "", speaker: "", program: "", q: "" };
 type Show = { restrictions: boolean; soft: boolean; proposals: boolean; tasks: boolean };
-type Prefs = { view: View; layers: string[] | null; groups: string[]; show: Show };
+/** `known`: every calendar that existed when the choice was saved, so ones added later still appear. */
+type Prefs = { view: View; layers: string[] | null; known?: string[]; groups: string[]; show: Show };
 
 const STORE = "bfc.calendar.v2";
 const loadPrefs = (): Partial<Prefs> => {
@@ -71,7 +72,11 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
       const p = loadPrefs();
       setIsMobile(mq.matches);
       if (p.view) setView(p.view);
-      if (p.layers) setLayersOn(p.layers.filter((id) => data.layers.some((l) => l.id === id)));
+      if (p.layers) {
+        const known = p.known ?? p.layers;
+        const added = data.layers.filter((l) => l.visibleByDefault && !known.includes(l.id)).map((l) => l.id);
+        setLayersOn([...p.layers.filter((id) => data.layers.some((l) => l.id === id)), ...added]);
+      }
       if (p.groups) setGroups(p.groups);
       if (p.show) setShow((s) => ({ ...s, ...p.show }));
       setReady(true);
@@ -85,9 +90,9 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
   useEffect(() => {
     if (!ready) return;
     try {
-      localStorage.setItem(STORE, JSON.stringify({ view, layers: layersOn, groups, show } satisfies Prefs));
+      localStorage.setItem(STORE, JSON.stringify({ view, layers: layersOn, known: data.layers.map((l) => l.id), groups, show } satisfies Prefs));
     } catch {}
-  }, [ready, view, layersOn, groups, show]);
+  }, [ready, view, layersOn, groups, show, data.layers]);
 
   useEffect(() => {
     if (view !== "timeline") cal.current?.getApi().changeView(FC_VIEW[view]);
@@ -103,11 +108,11 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
       if (filters.visibility === "private" && e.isPublic) return false;
       if (filters.organizer && !e.organizerIds.includes(filters.organizer)) return false;
       if (filters.speaker && e.speakerId !== filters.speaker) return false;
-      if (filters.program && e.audience.length > 0 && !e.audience.some((a) => a.startsWith(filters.program))) return false;
+      if (filters.program && e.audience.length > 0 && !data.layers.some((l) => l.program === filters.program && e.audience.includes(l.key))) return false;
       if (q && !`${e.title} ${e.speakerName ?? ""} ${e.location} ${e.categoryName}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [data.events, filters]);
+  }, [data.events, data.layers, filters]);
   const eventIds = useMemo(() => new Set(events.map((e) => e.id)), [events]);
   const proposals = useMemo(() => (show.proposals ? data.proposals.filter((p) => eventIds.has(p.eventId)) : []), [data.proposals, eventIds, show.proposals]);
   const filterCount =
@@ -155,10 +160,6 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
       const layer = layerById.get(a.layerId)!;
       out.push({ id: `a:${a.id}`, title: a.label, start: a.start, end: addDays(a.end, 1), allDay: true, editable: false, extendedProps: { type: "academic", a, layer, order: 5 } });
     }
-    for (const v of data.victoriales) {
-      if (!v.date) continue;
-      out.push({ id: `v:${v.id}`, title: v.label, start: v.date, end: addDays(v.endDate ?? v.date, 1), allDay: true, editable: false, extendedProps: { type: "victoriales", order: 0 } });
-    }
     // Overlapping restrictions are drawn once, as one span, instead of stacking.
     const hard = mergeWindows(windows.filter((w) => w.severity === "hard"));
     for (const m of hard) {
@@ -173,7 +174,7 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
       }
     }
     return out;
-  }, [events, proposals, show.tasks, data.tasks, data.layers, data.victoriales, academic, windows, eventIds, appearance, me.isAdmin]);
+  }, [events, proposals, show.tasks, data.tasks, data.layers, academic, windows, eventIds, appearance, me.isAdmin]);
 
   /* ---- interactions ---- */
   const applyMove = useCallback(
@@ -236,9 +237,6 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
             </span>
           </div>
         );
-      }
-      if (x.type === "victoriales") {
-        return <div className="flex h-[19px] items-center gap-1 overflow-hidden rounded-[4px] bg-brand-accent px-1.5 text-[11px] font-semibold text-white"><span className="truncate">★ {arg.event.title}</span></div>;
       }
       if (x.type === "task") {
         return (
@@ -427,14 +425,14 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
           <div className="flex max-h-[70dvh] flex-col gap-4 overflow-y-auto pr-1 scroll-thin">
             <div className="flex flex-col gap-2.5">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">Planning</p>
-              <Switch checked={show.restrictions} onCheckedChange={(v) => setShow((s) => ({ ...s, restrictions: v }))} label="Restricted periods" description={`Hard rules, incl. exams and the 21 days before (${hardCount} period${hardCount === 1 ? "" : "s"})`} />
+              <Switch checked={show.restrictions} onCheckedChange={(v) => setShow((s) => ({ ...s, restrictions: v }))} label="Restricted periods" description={`Exams and the 21 days before (${hardCount} period${hardCount === 1 ? "" : "s"})`} />
               <Switch checked={show.soft} onCheckedChange={(v) => setShow((s) => ({ ...s, soft: v }))} label="Soft warnings" description="Periods that warn but do not block" />
               <Switch checked={show.proposals} onCheckedChange={(v) => setShow((s) => ({ ...s, proposals: v }))} label="Proposed dates" description="Tentative holds awaiting an answer" />
               <Switch checked={show.tasks} onCheckedChange={(v) => setShow((s) => ({ ...s, tasks: v }))} label="Task deadlines" />
             </div>
             <div className="flex flex-col gap-2.5">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">Academic calendars</p>
-              {data.layers.length === 0 && <p className="text-xs text-ink-3">No academic calendar yet. Import one from the Academic section.</p>}
+              {data.layers.length === 0 && <p className="text-xs text-ink-3">No academic calendar yet.</p>}
               {data.layers.map((l) => (
                 <LayerToggle key={l.id} on={layersOn.includes(l.id)} color={l.color} onClick={() => setLayersOn((x) => toggle(x, l.id))}>{l.name}</LayerToggle>
               ))}
@@ -473,7 +471,7 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-warn/30 bg-warn-soft px-3.5 py-2.5 text-[13px]">
           <ShieldAlert className="h-4 w-4 shrink-0 text-warn" />
           <span className="min-w-0 flex-1">
-            <strong className="font-medium">No exam dates are approved yet.</strong> The rule “no conference during exams or in the 21 days before” cannot be enforced until the academic calendars are imported and approved.
+            <strong className="font-medium">No exam dates are approved yet.</strong> The 21-day exam rule cannot be enforced.
           </span>
           {me.isAdmin && <Button size="sm" variant="outline" onClick={() => router.push("/board/academic")}>Import calendars</Button>}
         </div>
@@ -484,8 +482,8 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm bg-brand/20 shadow-[inset_3px_0_0_var(--brand)]" /> Confirmed</span>
         <span className="inline-flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm border border-dashed border-brand/60" /> Tentative / proposed</span>
         <span className="inline-flex items-center gap-1.5"><Globe className="h-3 w-3" /> Public</span>
-        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm bg-surface-3 ring-1 ring-line" /> Weekend (no classes)</span>
-        {show.restrictions && <span className="inline-flex items-center gap-1.5"><span className="hatch-danger h-3 w-5 rounded-sm ring-1 ring-danger/40" /> Restricted (no conferences)</span>}
+        <span className="inline-flex items-center gap-1.5"><span className="h-3 w-5 rounded-sm bg-surface-3 ring-1 ring-line" /> Weekend</span>
+        {show.restrictions && <span className="inline-flex items-center gap-1.5"><span className="hatch-danger h-3 w-5 rounded-sm ring-1 ring-danger/40" /> Restricted</span>}
         {visibleLayers.map((l) => (
           <span key={l.id} className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full" style={{ background: l.color }} /> {l.name}</span>
         ))}
@@ -528,7 +526,7 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
             scrollTime="16:00:00"
             listDayFormat={{ weekday: "long", day: "numeric", month: "long" }}
             listDaySideFormat={false}
-            noEventsContent={<div className="px-6 py-14 text-center text-[13px] text-ink-3">Nothing scheduled in this period.</div>}
+            noEventsContent={<div className="px-6 py-14 text-center text-[13px] text-ink-3">Nothing scheduled.</div>}
             dayHeaderFormat={view === "month" ? { weekday: "short" } : { weekday: "short", day: "numeric" }}
             longPressDelay={350}
           />
@@ -541,7 +539,6 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
             layers={visibleLayers}
             academic={academic}
             windows={windows}
-            victoriales={data.victoriales}
             events={events}
             proposals={proposals}
             onOpenEvent={setOpenId}
