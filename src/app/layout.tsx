@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Toaster } from "sonner";
+import { appUrl } from "@/lib/app-url";
 import { getSetting } from "@/lib/settings";
 import "./globals.css";
 
@@ -14,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: { default: `${a.shortName} Calendar`, template: `%s · ${a.shortName} Calendar` },
     description: a.tagline,
-    metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
+    metadataBase: new URL(appUrl()),
   };
 }
 

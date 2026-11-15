@@ -2,6 +2,7 @@ import "server-only";
 import { and, eq, isNull, or, sql as dsql } from "drizzle-orm";
 import { db } from "@/db";
 import { categories, eventProposals, events, feedTokens, speakers, tasks, users } from "@/db/schema";
+import { appUrl } from "@/lib/app-url";
 import { audit } from "@/lib/audit";
 import { hashToken, newToken } from "@/lib/auth/crypto";
 import { AppError } from "@/lib/errors";
@@ -11,7 +12,7 @@ import { readSetting } from "@/lib/settings";
 import { STATUS_META } from "@/lib/appearance";
 import { addDays, eventDays, parisToInstant } from "@/lib/time";
 
-export const appUrl = () => (process.env.APP_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+export { appUrl };
 const UID_DOMAIN = "bfc-calendar";
 
 function allDayBounds(start: Date, end: Date) {
