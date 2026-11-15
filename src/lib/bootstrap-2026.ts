@@ -3,8 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import { and, eq, gte, inArray, lt, sql as dsql } from "drizzle-orm";
 import { db } from "@/db";
-import { academicImports, categories, events, importCandidates, speakers, users } from "@/db/schema";
-import { approveCandidates, importCalendar, rejectCandidates } from "@/lib/academic/service";
+import { academicEntries, academicImports, academicLayers, categories, events, importCandidates, speakers, users, type AcademicKind } from "@/db/schema";
+import { approveCandidates, editCandidate, importCalendar, rejectCandidates } from "@/lib/academic/service";
 import { audit } from "@/lib/audit";
 import { createEvent } from "@/lib/events/service";
 import { parisToInstant } from "@/lib/time";
@@ -55,6 +55,8 @@ export async function runBootstrap2026(log: (m: string) => void = console.log) {
     }
   }
 
+  await reviewLeftovers2026(actor, log);
+
   /* ---- 2. first conference ---- */
   const existing = await db.select({ id: events.id }).from(events).where(inArray(events.embedUrl, [LUMA])).limit(1);
   if (existing.length === 0) {
@@ -89,5 +91,72 @@ export async function runBootstrap2026(log: (m: string) => void = console.log) {
       organizerIds: [admin.id],
     });
     log(`✓ Created “${event.title}” (confirmed, not published — publish it from its page)`);
+  }
+}
+
+/**
+ * The rows the extractor was unsure about, checked by eye against the two PDFs
+ * (15 Nov 2026) at the administrator's request. Each item names the row as it
+ * was extracted and what the document actually shows. Applied only to rows that
+ * are still waiting for review, so a decision made by hand is never overwritten.
+ */
+type Fix = { layer: string; start: string; end: string; label: string; set?: { label?: string; kind?: AcademicKind } };
+const REVIEWED: Fix[] = [
+  // AIDAMS Y1 — the label of the week and the label of the next cell ran together.
+  { layer: "aidams-y1", start: "2027-01-25", end: "2027-01-28", label: "S1W12 Climate Day &", set: { label: "S1W12", kind: "teaching" } },
+  { layer: "aidams-y1", start: "2027-01-29", end: "2027-01-29", label: "Career", set: { label: "Climate Day & Career Workshop", kind: "school_event" } },
+  // AIDAMS Y1 — semester-2 weeks: the document prints "S2" with no week number, on these exact days.
+  ...["2027-02-08|2027-02-12", "2027-02-22|2027-02-26", "2027-03-01|2027-03-05", "2027-03-08|2027-03-12", "2027-03-15|2027-03-16", "2027-03-18|2027-03-19", "2027-03-30|2027-04-02", "2027-04-19|2027-04-23", "2027-04-26|2027-04-30", "2027-05-10|2027-05-14", "2027-05-18|2027-05-21", "2027-05-24|2027-05-28"].map((d) => {
+    const [start, end] = d.split("|");
+    return { layer: "aidams-y1", start, end, label: "S2" };
+  }),
+  // Printed with a question mark in the document; kept as printed.
+  { layer: "aidams-y1", start: "2027-05-03", end: "2027-05-03", label: "S2?" },
+  // One cell on Tue 4 May whose text is cut off after "Retour Learning"; Wed 5 May is an unlabelled cell in the teaching colour.
+  { layer: "aidams-y1", start: "2027-05-04", end: "2027-05-04", label: "Retour", set: { label: "Retour Learning…", kind: "school_event" } },
+  { layer: "aidams-y1", start: "2027-05-05", end: "2027-05-05", label: "Learning", set: { label: "S2", kind: "teaching" } },
+  // BoE Y2 — single-day cell on Fri 20 Nov, text slightly clipped but complete.
+  { layer: "boe-y2", start: "2026-11-20", end: "2026-11-20", label: "Robotics Bootcamp" },
+];
+
+async function reviewLeftovers2026(actor: Parameters<typeof approveCandidates>[0], log: (m: string) => void) {
+  let approved = 0;
+  for (const fix of REVIEWED) {
+    const [c] = await db
+      .select()
+      .from(importCandidates)
+      .where(and(eq(importCandidates.status, "pending"), eq(importCandidates.layerKey, fix.layer), eq(importCandidates.startDate, fix.start), eq(importCandidates.endDate, fix.end), eq(importCandidates.label, fix.label)));
+    if (!c) continue;
+    if (fix.set) await editCandidate(actor, c.id, fix.set);
+    approved += (await approveCandidates(actor, [c.id])).approved;
+  }
+
+  // Two rows approved automatically earlier were wrong on a weekend edge.
+  const [aidams] = await db.select().from(academicLayers).where(eq(academicLayers.key, "aidams-y1"));
+  let corrected = 0;
+  if (aidams) {
+    // "Workshop" on Sat 30–Sun 31 Jan was only the overflowing end of "Climate Day & Career Workshop" (Fri 29 Jan).
+    const gone = await db
+      .delete(academicEntries)
+      .where(and(eq(academicEntries.layerId, aidams.id), eq(academicEntries.label, "Workshop"), eq(academicEntries.startDate, "2027-01-30"), eq(academicEntries.endDate, "2027-01-31")))
+      .returning();
+    for (const g of gone) if (g.candidateId) await db.update(importCandidates).set({ status: "rejected" }).where(eq(importCandidates.id, g.candidateId));
+    // Easter Monday is Mon 29 Mar only; the weekend before it had been joined to it.
+    const moved = await db
+      .update(academicEntries)
+      .set({ startDate: "2027-03-29", updatedAt: new Date() })
+      .where(and(eq(academicEntries.layerId, aidams.id), eq(academicEntries.label, "Public Holiday"), eq(academicEntries.startDate, "2027-03-27"), eq(academicEntries.endDate, "2027-03-29")))
+      .returning();
+    corrected = gone.length + moved.length;
+  }
+
+  if (approved || corrected) {
+    await audit({
+      actor: null,
+      action: "academic.bootstrap",
+      entityType: "academic_import",
+      summary: `Calendar review at the administrator's request: ${approved} remaining rows checked against the PDF and approved, ${corrected} earlier rows corrected`,
+    });
+    log(`✓ Calendar review: ${approved} remaining rows approved, ${corrected} earlier rows corrected`);
   }
 }

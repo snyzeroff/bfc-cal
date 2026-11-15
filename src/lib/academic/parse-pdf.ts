@@ -843,7 +843,7 @@ function parsePage(pd: PageData, pageNo: number, filename: string, warnings: str
         cap(kind === "other" ? 80 : 84, issue);
       }
       if (/\?/.test(label)) cap(70, "Label contains a question mark in the source document (tentative entry)");
-      if (/^s\d$/i.test(label)) cap(70, "Week number missing from the label (clipped in the PDF)");
+      if (/^s\d$/i.test(label)) cap(70, "No week number is printed for this week in the document");
 
       const bbox: [number, number, number, number] = [round2(x0), round2(y0), round2(x1), round2(rowY(endRow + 1))];
       const startDate = iso(block.year, block.month, r0 + 1);

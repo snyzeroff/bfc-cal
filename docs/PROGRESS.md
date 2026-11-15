@@ -90,7 +90,7 @@ Not verified, because it needs real accounts/devices: subscribing from actual Ap
 
 Applied once at deploy by `src/lib/bootstrap-2026.ts`:
 
-- BoE Y1/Y2 (version 08/09/2026) and AIDAMS Y1 calendars from 1 November 2026: 198 periods approved automatically (extractor confidence ≥ 75 %), 18 uncertain rows left in the review queue (mostly AIDAMS weeks whose label is clipped in the PDF), 67 rows before November set aside.
+- BoE Y1/Y2 (version 08/09/2026) and AIDAMS Y1 calendars from 1 November 2026: 198 periods approved automatically (extractor confidence ≥ 75 %); the 18 rows it was unsure about were then checked by eye against the PDFs and approved with corrections (`REVIEWED` in the same file), and two automatically approved rows that were wrong on a weekend edge were fixed. 67 rows before November are set aside. One label is cut off in the source document and kept as “Retour Learning…”.
 - The conference "Philippe Heim – Conference Q&A" (17 November 2026, 19:00–20:30, Breguet — Amphi 270), with details taken from its Luma page: created as confirmed and featured, **not published**.
 
 ## Known limitations (not done, or done differently — stated plainly)

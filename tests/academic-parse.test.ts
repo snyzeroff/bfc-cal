@@ -110,7 +110,7 @@ describe("academic PDF extraction — AIDAMS Y1 2026–27", () => {
     expect(bare.length).toBeGreaterThan(0);
     for (const c of bare) {
       expect(c.kind).toBe("teaching");
-      expect(c.issues.join(" ")).toMatch(/Week number missing/);
+      expect(c.issues.join(" ")).toMatch(/No week number is printed/);
     }
     const weekend = cal.candidates.find((c) => c.label === "Public Holiday" && c.startDate === "2027-03-27");
     expect(weekend?.issues.join(" ")).toMatch(/weekend/);
