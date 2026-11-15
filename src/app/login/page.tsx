@@ -32,7 +32,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <span className="italic text-white/70">around the academic year.</span>
           </p>
           <p className="mt-6 max-w-md text-[15px] leading-relaxed text-white/65">
-            The board workspace: tentative dates, speaker follow-up, exam periods, the Victoriales restriction and one calendar your members can subscribe to.
+            The board workspace: tentative dates, speaker follow-up, exam periods, the 21-day rule before exams and one calendar your members can subscribe to.
           </p>
         </div>
         <p className="relative text-xs text-white/45">CentraleSupélec · Europe/Paris</p>

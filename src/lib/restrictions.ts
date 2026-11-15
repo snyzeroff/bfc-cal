@@ -87,11 +87,25 @@ export function computeWindows(
     } else if (rule.type === "academic_kind") {
       const kinds = rule.params.kinds ?? [];
       const layers = rule.params.layerKeys ?? [];
+      const before = rule.params.daysBefore ?? 0;
       for (const e of ctx.academic) {
         // Unverified dates must never be enforced as if they were facts.
         if (!e.verified) continue;
         if (!kinds.includes(e.kind)) continue;
         if (layers.length && !layers.includes(e.layerKey)) continue;
+        if (before > 0) {
+          // The N calendar days immediately preceding the period (e.g. revision time before exams).
+          const w = { start: addDays(e.startDate, -before), end: addDays(e.startDate, -1) };
+          out.push({
+            ...base,
+            ...w,
+            title: `No conferences — ${before} days before ${e.label} (${e.layerName})`,
+            message:
+              rule.message ||
+              `No BFC conference may be scheduled during the ${before} days before ${e.label} for ${e.layerName} (${formatIsoRange(e.startDate, e.endDate)}). Restricted period: ${formatIsoRange(w.start, w.end)}.`,
+          });
+          continue;
+        }
         out.push({
           ...base,
           start: e.startDate,

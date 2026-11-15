@@ -10,9 +10,8 @@ export const metadata = { title: "Settings" };
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   await requireUser("super_admin");
-  const [{ tab }, victoriales, appearance, feed, rules, cats, people, audit, layers, affected] = await Promise.all([
+  const [{ tab }, appearance, feed, rules, cats, people, audit, layers, affected] = await Promise.all([
     searchParams,
-    getSetting("victoriales"),
     getSetting("appearance"),
     getSetting("feed"),
     db.select().from(restrictionRules).orderBy(desc(restrictionRules.builtin), asc(restrictionRules.createdAt)),
@@ -25,7 +24,6 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   return (
     <SettingsPanel
       initialTab={tab}
-      victoriales={victoriales}
       appearance={appearance}
       feed={feed}
       rules={rules.map((r) => ({ id: r.id, name: r.name, type: r.type, severity: r.severity, appliesTo: r.appliesTo, params: r.params, message: r.message, active: r.active, builtin: r.builtin }))}

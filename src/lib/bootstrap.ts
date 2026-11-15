@@ -4,6 +4,9 @@ import { db } from "@/db";
 import { categories, restrictionRules, templates, users } from "@/db/schema";
 import { hashPassword } from "@/lib/auth/crypto";
 
+/** No conference in the N days before an exam session. */
+export const EXAM_RULE_DAYS = 21;
+
 const DEFAULT_CATEGORIES = [
   { name: "Conference", kind: "conference", color: "#841E21", icon: "mic", sortOrder: 0 },
   { name: "Workshop", kind: "conference", color: "#B4532A", icon: "presentation", sortOrder: 1 },
@@ -15,21 +18,21 @@ const DEFAULT_CATEGORIES = [
 
 /**
  * Idempotent reference data every installation needs: categories, the built-in
- * Victoriales rule, sensible default warnings and (once) the first Super Admin.
+ * exam rule, sensible default warnings and (once) the first Super Admin.
  */
 export async function ensureBaseData(admin?: { email: string; password: string; name: string }) {
   const [{ n: catCount }] = await db.select({ n: dsql<number>`count(*)::int` }).from(categories);
   if (catCount === 0) await db.insert(categories).values([...DEFAULT_CATEGORIES]);
 
-  const [victoriales] = await db.select().from(restrictionRules).where(eq(restrictionRules.type, "victoriales"));
-  if (!victoriales) {
+  const [builtin] = await db.select().from(restrictionRules).where(eq(restrictionRules.builtin, true));
+  if (!builtin) {
     await db.insert(restrictionRules).values([
       {
-        name: "Victoriales — 21 days before",
-        type: "victoriales",
+        name: "Exams — 21 days before",
+        type: "academic_kind",
         severity: "hard",
         appliesTo: ["conference"],
-        params: { daysBefore: 21 },
+        params: { kinds: ["exam"], daysBefore: EXAM_RULE_DAYS },
         builtin: true,
       },
       {

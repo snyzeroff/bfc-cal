@@ -2,8 +2,8 @@
 
 ## Every academic year
 
-1. **Settings → Scheduling rules**: add the new Victoriales edition and its date (keep past editions for history, or remove them).
-2. **Academic → Import calendar**: import the new year's PDF(s). Review and approve. Old periods can stay (they are in the past) or be removed by deleting a layer's entries.
+1. **Academic → Import calendar**: import the new year's PDF(s). Review and approve. The restricted periods before exams follow from the approved exam dates. Old periods can stay (they are in the past) or be removed by deleting a layer's entries.
+2. The automatic loader for 2026–27 (`src/lib/bootstrap-2026.ts`, run once at deploy) does nothing once its content exists; it can be deleted after that year.
 3. **Settings → People & roles**: invite the new board, deactivate members who left (this ends their sessions and private feeds), and make sure at least two Super Admins remain.
 4. Archive last year's completed events if the pipeline feels crowded (they remain searchable under *Archived*).
 
@@ -51,6 +51,6 @@ select name, email, role, active, last_login_at from users order by role, name;
 select title, start_at, status from public_events order by start_at;
 -- Recent sensitive actions
 select at, actor_name, action, summary, reason from audit_log
-where action in ('restriction.override','event.publish','event.unpublish','user.update','settings.victoriales')
+where action in ('restriction.override','event.publish','event.unpublish','user.update','settings.exam_rule')
 order by at desc limit 50;
 ```

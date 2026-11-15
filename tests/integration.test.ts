@@ -22,7 +22,7 @@ import { loadPlanningContext } from "@/lib/planning";
 import { getPublicEvent, listPublicEvents } from "@/lib/public";
 import { writeSetting } from "@/lib/settings";
 import { parisToInstant } from "@/lib/time";
-import { category, makeUser, parseFeed, resetDb, setVictoriales } from "./helpers";
+import { addAcademic, category, makeUser, parseFeed, resetDb, setVictoriales } from "./helpers";
 
 let superAdmin: ActorUser, admin: ActorUser, member: ActorUser, other: ActorUser;
 let conf: s.Category, meeting: s.Category;
@@ -320,7 +320,67 @@ describe("tentative dates", () => {
   });
 });
 
-describe("Victoriales restriction", () => {
+describe("no conference in the 21 days before exams", () => {
+  // Exams 13–15 Jan 2027 → restricted 23 Dec 2026 – 12 Jan 2027.
+  beforeEach(() => addAcademic("boe-y1", "Exams", "exam", "2027-01-13", "2027-01-15"));
+  const mk = (actor: ActorUser, day: string, cat?: string, o: Parameters<typeof createEvent>[2] = {}) =>
+    code(createEvent(actor, { title: day, categoryId: cat ?? conf.id, status: "tentative", startAt: at(day, "18:30"), endAt: at(day, "20:00") }, o));
+
+  it("blocks members and Board Admins on both edges of the window, and only there", async () => {
+    expect(await mk(member, "2026-12-22")).toBe("ok");
+    expect(await mk(member, "2026-12-23")).toBe("restricted");
+    expect(await mk(admin, "2027-01-12")).toBe("restricted");
+    expect(await mk(member, "2027-01-18")).toBe("ok");
+    expect(await mk(member, "2027-01-05", meeting.id)).toBe("ok"); // board meetings are exempt
+  });
+
+  it("explains the reason with the exam it protects", async () => {
+    const err = await createEvent(member, { title: "x", categoryId: conf.id, startAt: at("2027-01-05", "18:30"), endAt: at("2027-01-05", "20:00") }).catch((e) => e as AppError);
+    expect((err as AppError).code).toBe("restricted");
+    expect((err as AppError).message).toMatch(/21 days before Exams for BOE-Y1/);
+  });
+
+  it("uses only approved exam dates: an unverified period or a midterm does not block", async () => {
+    await addAcademic("aidams-y1", "Exams", "exam", "2027-04-07", "2027-04-09", false);
+    await addAcademic("boe-y1", "MIDTERM", "midterm", "2027-03-31", "2027-04-02");
+    expect(await mk(member, "2027-03-24")).toBe("ok");
+    expect((await loadPlanningContext()).windows.filter((w) => w.severity === "hard")).toHaveLength(1);
+  });
+
+  it("can be extended to midterms and to another number of days", async () => {
+    await addAcademic("boe-y1", "MIDTERM", "midterm", "2027-03-31", "2027-04-02");
+    await db.update(s.restrictionRules).set({ params: { kinds: ["exam", "midterm"], daysBefore: 7 } }).where(eq(s.restrictionRules.builtin, true));
+    expect(await mk(member, "2027-03-24")).toBe("restricted");
+    expect(await mk(member, "2027-03-23")).toBe("ok");
+    expect(await mk(member, "2026-12-30")).toBe("ok"); // 14 days before the January exams: no longer blocked
+  });
+
+  it("every program's exams count, and the window follows the dates when they are corrected", async () => {
+    const e = await addAcademic("aidams-y1", "Exams", "exam", "2027-02-03", "2027-02-05");
+    expect(await mk(member, "2027-01-20")).toBe("restricted");
+    await db.update(s.academicEntries).set({ startDate: "2027-02-17", endDate: "2027-02-19" }).where(eq(s.academicEntries.id, e.id));
+    expect(await mk(member, "2027-01-20")).toBe("ok");
+    expect(await mk(member, "2027-02-10")).toBe("restricted");
+  });
+
+  it("a Super Admin can override with a reason, which is audited; scheduled events are flagged when exam dates arrive later", async () => {
+    expect(await mk(superAdmin, "2027-01-05")).toBe("restricted");
+    expect(await mk(superAdmin, "2027-01-05", undefined, { overrideReason: "Speaker only free that week" })).toBe("ok");
+    expect(await db.select().from(s.auditLog).where(eq(s.auditLog.action, "restriction.override"))).toHaveLength(1);
+    const ev = await confirmed("Planned early", "2027-05-20");
+    expect((await findRestrictedEvents()).map((f) => f.event.id)).not.toContain(ev.id);
+    await addAcademic("boe-y1", "EXAMS", "exam", "2027-06-02", "2027-06-04"); // restricted 12 May – 1 June
+    expect((await findRestrictedEvents()).map((f) => f.event.id)).toContain(ev.id);
+  });
+
+  it("is the built-in rule of a fresh installation and never shows publicly", async () => {
+    const [rule] = await db.select().from(s.restrictionRules).where(eq(s.restrictionRules.builtin, true));
+    expect(rule).toMatchObject({ type: "academic_kind", severity: "hard", appliesTo: ["conference"], params: { kinds: ["exam"], daysBefore: 21 } });
+    expect(await buildPublicFeed()).not.toMatch(/No conferences|restrict/i);
+  });
+});
+
+describe("key-date restriction (N days before a fixed date)", () => {
   beforeEach(() => setVictoriales("2027-04-02")); // restricted: 12 March – 1 April 2027
 
   it("blocks board members and Board Admins from scheduling a conference in the 21 days before", async () => {

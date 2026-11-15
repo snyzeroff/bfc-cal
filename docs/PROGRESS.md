@@ -8,7 +8,7 @@ _Last updated: 15 November 2026._
 |---|---|
 | `npm run typecheck` | clean |
 | `npm run lint` | clean |
-| `npm test` — unit + integration on a real PostgreSQL 16 | **119 passed** (4 files) |
+| `npm test` — unit + integration on a real PostgreSQL 16 | **126 passed** (4 files) |
 | `npm run test:e2e` — Playwright against a production build | **23 passed** (desktop + mobile projects) |
 | Accessibility — axe, WCAG 2.1 A/AA, light and dark, 20 screens | no serious or critical violation (one FullCalendar-internal rule excluded, see limitations) |
 | Feed validity | generated `.ics` parsed by an independent RFC 5545 parser (`ical.js`) in tests |
@@ -28,7 +28,7 @@ Not verified, because it needs real accounts/devices: subscribing from actual Ap
 | 7 | Changes appear correctly in feeds | ✅ | reschedule / cancel / DST tests; e2e steps 5–7 |
 | 8 | Private data stays protected | ✅ | view column test, speaker contact test, API/404 e2e |
 | 9 | Academic layers can be imported and reviewed | ✅ | `tests/academic-parse.test.ts`; `e2e/academic.spec.ts` (real PDF through the UI) |
-| 10 | Victoriales restriction enforced | ✅ | "Victoriales restriction" (9 integration tests); e2e Victoriales |
+| 10 | Scheduling restriction enforced | ✅ | The brief said "Victoriales"; the administrator later clarified the rule is **no conference in the 21 days before exams**. Implemented as the built-in rule: "no conference in the 21 days before exams" (7 integration tests) and the e2e exam-rule scenario. The fixed key-date variant is still covered by "key-date restriction". |
 | 11 | Works on desktop and mobile | ✅ | `e2e/mobile.spec.ts` + visual review at 390 px and 1440 px |
 | 12 | Critical workflows are tested | ✅ | see table below |
 | 13 | Can be configured and deployed | ⚠️ ready, **not deployed** | `docs/DEPLOYMENT.md`; needs a Git repository, a host and a database |
@@ -45,8 +45,8 @@ Not verified, because it needs real accounts/devices: subscribing from actual Ap
 | Private feed token revoked | integration: "a revoked token…", "rotation…"; e2e private subscription |
 | Board member losing access | integration: "a board member who loses access…" |
 | Academic PDF with ambiguous dates | integration: "an ambiguous date is flagged…"; parser: "is candid about what it is less sure of" |
-| Conference inside the Victoriales period | integration + e2e (blocked for members and admins; meetings exempt; both window edges) |
-| Victoriales date changed after scheduling | integration: "recalculates when the Victoriales date changes…" |
+| Conference inside a restricted period (before exams) | integration + e2e (blocked for members and admins; meetings exempt; both window edges) |
+| Restricted period changing after events are scheduled | integration: "recalculates when the Victoriales date changes…" |
 | Feed updates after rescheduling | integration: "rescheduling keeps the UID…"; e2e step 6 |
 | Daylight-saving transitions | unit: time (spring + autumn 2027); integration: "writes correct instants on both sides…" |
 | Two administrators editing the same event | integration: "the second of two administrators…" |
@@ -68,7 +68,7 @@ Not verified, because it needs real accounts/devices: subscribing from actual Ap
 - [x] Luma registration widget per event (allow-listed, sandboxed iframe) and a "featured" event at the top of the members site
 
 **Scheduling**
-- [x] Victoriales: editable per edition, 21-day window computed, hard block, Super Admin override with reason + audit
+- [x] Built-in rule: no conference in the N (21) days before each approved exam session, optional for midterms, hard block, Super Admin override with reason + audit
 - [x] Generic rules: fixed date ranges and academic kinds, hard/soft, per event type
 - [x] Academic layers per program/year; overlays on month/week/day; rows in the timeline
 - [x] Import: PDF (geometry-based), `.ics`, `.csv` → review → approve; confidence, issues, source reference, file hash
@@ -78,13 +78,20 @@ Not verified, because it needs real accounts/devices: subscribing from actual Ap
 - [x] Speakers directory (private contact data, status, owner, linked conferences)
 - [x] Tasks with assignee and deadline, per event and general; progress; conference template with relative deadlines
 - [x] Comments, link attachments, per-event history
-- [x] Dashboard (next up, needs attention, my tasks, Victoriales card)
+- [x] Dashboard (next up, needs attention, my tasks, restricted-periods card)
 - [x] Audit log (Super Admin), CSV export of events
 
 **Customisation**
 - [x] Brand colours, org name, theme default, density, event style, colour-by, default views, week start, weekends, visible hours
 - [x] Status labels and colours; category colours, icons and types
 - [x] Light / dark / system theme per user
+
+## Content loaded for 2026–27 (at the administrator's request)
+
+Applied once at deploy by `src/lib/bootstrap-2026.ts`:
+
+- BoE Y1/Y2 (version 08/09/2026) and AIDAMS Y1 calendars from 1 November 2026: 198 periods approved automatically (extractor confidence ≥ 75 %), 18 uncertain rows left in the review queue (mostly AIDAMS weeks whose label is clipped in the PDF), 67 rows before November set aside.
+- The conference "Philippe Heim – Conference Q&A" (17 November 2026, 19:00–20:30, Breguet — Amphi 270), with details taken from its Luma page: created as confirmed and featured, **not published**.
 
 ## Known limitations (not done, or done differently — stated plainly)
 

@@ -72,7 +72,7 @@ Health check: `GET /api/health` (200 when the database answers).
 
 ## After the first deploy
 
-1. Sign in, set the **Victoriales date**, import and approve the academic calendars, invite the board.
+1. Sign in, import and approve the academic calendars (the exam rule is computed from them), invite the board.
 2. Open `/feeds/public.ics` in a browser: it should download a calendar. Subscribe to it from one phone to verify.
 3. Share `https://<your-domain>/subscribe` with members.
 

@@ -6,7 +6,6 @@ import { TaskList } from "@/components/board/task-list";
 import { Card, EmptyState, SectionTitle } from "@/components/ui";
 import { requireUser } from "@/lib/auth/session";
 import { countPendingCandidates, loadCalendarData } from "@/lib/board-data";
-import { victorialesWindow } from "@/lib/restrictions";
 import { diffDays, formatIsoDay, formatIsoRange, formatRange, relativeDays, wallToInstant } from "@/lib/time";
 
 export const metadata = { title: "Overview" };
@@ -22,9 +21,8 @@ export default async function Dashboard() {
   const overdue = data.tasks.filter((t) => !t.done && t.dueDate && t.dueDate < today);
   const violating = data.events.filter((e) => e.violation && !e.overrideReason);
   const readyToPublish = data.events.filter((e) => e.status === "confirmed" && !e.isPublic && e.kind === "conference" && e.start && e.start.slice(0, 10) >= today);
-  const edition = data.victoriales.find((v) => v.date && v.date >= today) ?? data.victoriales.find((v) => v.date) ?? data.victoriales[0];
-  const win = edition?.date ? victorialesWindow(edition.date) : null;
-  const inWindow = win ? today >= win.start && today <= win.end : false;
+  const upcomingWindows = data.windows.filter((w) => w.severity === "hard" && w.end >= today).slice(0, 4);
+  const hasExams = data.academic.some((a) => a.kind === "exam");
 
   const attention: { key: string; icon: React.ReactNode; tone: string; text: React.ReactNode; href: string }[] = [
     ...violating.map((e) => ({ key: `v${e.id}`, icon: <ShieldAlert />, tone: "text-danger", text: <><strong className="font-medium">{e.title}</strong> is scheduled inside a restricted period.</>, href: `/board/events/${e.id}` })),
@@ -118,32 +116,32 @@ export default async function Dashboard() {
 
         <div className="flex flex-col gap-6">
           <section>
-            <SectionTitle>Victoriales restriction</SectionTitle>
+            <SectionTitle>Restricted periods</SectionTitle>
             <Card className="overflow-hidden">
-              {win && edition?.date ? (
-                <>
-                  <div className="hatch-danger px-4 py-3">
-                    <p className="flex items-center gap-2 text-[13px] font-semibold text-danger"><ShieldAlert className="h-4 w-4" /> No conferences {formatIsoRange(win.start, win.end)}</p>
-                  </div>
-                  <div className="px-4 py-3 text-[13px] text-ink-2">
-                    <p>
-                      {edition.label}: <span className="font-medium text-ink">{formatIsoDay(edition.date, true)}</span>
-                    </p>
-                    <p className="mt-1 text-xs text-ink-3">
-                      {inWindow
-                        ? `The restricted period is in effect — ${diffDays(today, win.end) + 1} day(s) left.`
-                        : today < win.start
-                          ? `Starts ${relativeDays(win.start, today)}. The 21 days before the Victoriales are closed to conferences; board meetings are not affected.`
-                          : "This restricted period is over."}
-                    </p>
-                  </div>
-                </>
+              {upcomingWindows.length > 0 ? (
+                <ul className="divide-y divide-line">
+                  {upcomingWindows.map((w) => {
+                    const active = today >= w.start && today <= w.end;
+                    return (
+                      <li key={w.key} className={active ? "hatch-danger px-4 py-3" : "px-4 py-3"}>
+                        <p className="flex items-center gap-2 text-[13px] font-semibold text-danger"><ShieldAlert className="h-4 w-4 shrink-0" /> {formatIsoRange(w.start, w.end)}</p>
+                        <p className="mt-0.5 text-xs text-ink-2">{w.title}{active ? ` — in effect, ${diffDays(today, w.end) + 1} day(s) left` : ` — starts ${relativeDays(w.start, today)}`}</p>
+                      </li>
+                    );
+                  })}
+                </ul>
               ) : (
                 <div className="flex gap-3 px-4 py-4 text-[13px]">
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
                   <p className="text-ink-2">
-                    <span className="font-medium text-ink">Date not set.</span> Until a Super Admin enters the Victoriales date, the 21-day restriction cannot be computed or enforced.
-                    {user.role === "super_admin" && <Link href="/board/settings?tab=rules" className="ml-1 text-brand-ink underline underline-offset-2">Set it now</Link>}
+                    {hasExams ? (
+                      "No restricted period ahead."
+                    ) : (
+                      <>
+                        <span className="font-medium text-ink">No exam dates approved yet.</span> Conferences are closed during the 21 days before exams; this needs the academic calendars.
+                        {user.role !== "board_member" && <Link href="/board/academic" className="ml-1 text-brand-ink underline underline-offset-2">Import them</Link>}
+                      </>
+                    )}
                   </p>
                 </div>
               )}

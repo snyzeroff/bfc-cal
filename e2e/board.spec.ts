@@ -36,7 +36,7 @@ test("conference workflow: propose dates → confirm → publish → update → 
   await expect(page.getByText("Availability recorded")).toBeVisible();
   await options.nth(1).getByRole("button", { name: "Confirm" }).click();
   await expect(page.getByText("Date confirmed — the other options were released")).toBeVisible();
-  await expect(page.getByText("Released")).toBeVisible();
+  await expect(page.getByText("Released", { exact: true })).toBeVisible();
   await expect(page.getByLabel("Speaker availability")).toHaveCount(0);
 
   // 4. Confirmed is not public.
@@ -83,17 +83,29 @@ test("conference workflow: propose dates → confirm → publish → update → 
   await expect(page.getByText(/status published → cancelled/)).toBeVisible();
 });
 
-test("Victoriales: the date is configurable, the 21-day period blocks conferences, only a Super Admin can override", async ({ page }) => {
-  const victoriales = futureWeekday(120);
+test("exam rule: the 21 days before an approved exam block conferences; only a Super Admin can override", async ({ page }) => {
+  const examStart = futureWeekday(120);
+  const victoriales = examStart; // first exam day
   const inside = addDays(victoriales, -10);
 
-  // Super Admin sets the date.
+  // An admin records the exam session on an academic layer (same result as approving an imported row).
   await login(page, "superAdmin");
+  await page.goto("/board/academic");
+  await page.getByRole("button", { name: "New layer" }).click();
+  await page.getByRole("dialog", { name: "New layer" }).getByLabel("Name").fill("E2E program");
+  await page.getByRole("dialog", { name: "New layer" }).getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Layer saved")).toBeVisible();
+  await page.getByRole("button", { name: /E2E program/ }).first().click();
+  await page.getByRole("button", { name: "Add period" }).click();
+  const period = page.getByRole("dialog", { name: "Add period" });
+  await period.getByLabel("Label").fill("Exams");
+  await period.getByLabel("Kind").selectOption("exam");
+  await period.getByLabel("First day").fill(examStart);
+  await period.getByLabel("Last day").fill(addDays(examStart, 2));
+  await period.getByRole("button", { name: "Save" }).click();
+  await expect(page.getByText("Period saved")).toBeVisible();
   await page.goto("/board/settings?tab=rules");
-  await page.getByLabel("First day").fill(victoriales);
-  await page.getByRole("button", { name: "Save Victoriales date" }).click();
-  await expect(page.getByText("Victoriales saved — restricted period recalculated")).toBeVisible();
-  await expect(page.getByText(/Restricted:/)).toBeVisible();
+  await expect(page.getByLabel("Days closed before each exam session")).toHaveValue("21");
   await logout(page);
 
   // A board member is warned before submitting, and blocked if they insist.
@@ -107,7 +119,7 @@ test("Victoriales: the date is configurable, the 21-day period blocks conference
   await dialog.getByRole("button", { name: "Create event" }).click();
   const blocked = page.getByRole("dialog", { name: "This date is restricted" });
   await expect(blocked).toBeVisible();
-  await expect(blocked.getByText(/21 days before Victoriales/).first()).toBeVisible();
+  await expect(blocked.getByText(/21 days before Exams/).first()).toBeVisible();
   await expect(blocked.getByRole("button", { name: /Override/ })).toHaveCount(0);
   await blocked.getByRole("button", { name: "Choose another date" }).click();
 
@@ -144,7 +156,7 @@ test("Victoriales: the date is configurable, the 21-day period blocks conference
   await page.getByRole("radio", { name: "Timeline" }).click();
   await expect(page.getByRole("region", { name: /Planning timeline/ })).toBeVisible();
   await page.goto("/");
-  await expect(page.locator("body")).not.toContainText(/Victoriales/);
+  await expect(page.locator("body")).not.toContainText(/No conferences/);
 });
 
 test("roles: a board member has no access to settings, publishing or other people's events", async ({ page }) => {

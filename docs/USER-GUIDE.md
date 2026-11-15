@@ -2,7 +2,7 @@
 
 ## The two calendars
 
-- **Board calendar** (`/board/calendar`) shows everything: confirmed events (solid), tentative events and proposed dates (dashed), task deadlines, academic layers, and restricted periods (red hatching).
+- **Board calendar** (`/board/calendar`) shows everything: confirmed events (solid), tentative events and proposed dates (dashed), task deadlines, academic layers, and restricted periods (red hatching: the 21 days before exams).
 - **Members calendar** (`/`) shows only what a Board Admin has published.
 
 Views: Month, Week, Day, Agenda and Timeline (a horizontal overview of several months with one row per academic calendar — the best view for choosing a date). Use **Layers** to show or hide academic calendars and kinds of period, and **Filter** for category, status, visibility, organiser, speaker or program.
@@ -25,13 +25,13 @@ On the event's **Details** tab, under *Public information*, paste the embed code
 
 A Board Admin can also switch on **Feature at the top of the members site**: while the event is published and upcoming it takes the headline spot of the home page (with its Luma widget if it has one) instead of the next event by date.
 
-## The Victoriales rule
+## The exam rule
 
-No conference can be scheduled in the 21 days before the Victoriales. The period is shown in red on the board calendar and on the dashboard. If you try to use one of those dates you get an explanation and the action is refused. Board meetings are not affected.
+No conference can be scheduled in the 21 days before an exam session. The restricted periods are computed from the exam dates approved in **Academic** (for every program) and are shown in red on the board calendar and on the dashboard. If you try to use one of those dates you get an explanation and the action is refused. Board meetings are not affected.
 
-A Super Admin can record an exception: it requires a written reason, which is stored on the event and in the audit log.
+A Super Admin can record an exception: it requires a written reason, which is stored on the event and in the audit log. The number of days, and whether midterms count too, are set in **Settings → Scheduling rules → Before exams**.
 
-If the Victoriales date changes, the period moves automatically and any conference already inside the new period is flagged for attention.
+If exam dates are corrected or added later, the periods move automatically and any conference already inside a restricted period is flagged for attention.
 
 ## Subscriptions
 

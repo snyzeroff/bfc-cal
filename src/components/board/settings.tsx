@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { KeyRound, Pencil, Plus, ShieldAlert, ShieldCheck, Trash2, UserPlus } from "lucide-react";
-import { archiveCategoryAction, deleteRuleAction, inviteUserAction, resetLinkAction, saveAppearanceAction, saveCategoryAction, saveFeedSettingsAction, saveRuleAction, saveVictorialesAction, toggleRuleAction, updateUserAction, type RuleInput } from "@/app/actions/settings";
+import { archiveCategoryAction, deleteRuleAction, inviteUserAction, resetLinkAction, saveAppearanceAction, saveCategoryAction, saveFeedSettingsAction, saveExamRuleAction, saveRuleAction, toggleRuleAction, updateUserAction, type RuleInput } from "@/app/actions/settings";
 import { CATEGORY_ICONS, CategoryIcon } from "@/components/category-icon";
 import { CopyField } from "@/components/subscribe";
 import { Avatar, Badge, Button, Callout, Card, ColorField, Dialog, Field, Input, PageHeader, Segmented, Select, Switch, TabPanel, Tabs } from "@/components/ui";
@@ -12,11 +12,9 @@ import { STATUS_META, type Appearance } from "@/lib/appearance";
 import { ACADEMIC_KIND_META, type BoardCategory } from "@/lib/board-types";
 import { cn } from "@/lib/cn";
 import { ROLE_DESCRIPTION, ROLE_LABEL } from "@/lib/permissions";
-import { victorialesWindow } from "@/lib/restrictions";
-import { formatDateTime, formatIsoDay, formatIsoRange } from "@/lib/time";
+import { formatDateTime, formatIsoRange } from "@/lib/time";
 import { useBoard, useMutate } from "./context";
 
-type Victoriales = { id: string; label: string; date: string | null; endDate: string | null };
 type Rule = { id: string; name: string; type: "victoriales" | "date_range" | "academic_kind"; severity: "hard" | "soft"; appliesTo: string[]; params: { startDate?: string; endDate?: string; kinds?: string[]; layerKeys?: string[]; daysBefore?: number }; message: string; active: boolean; builtin: boolean };
 type UserRow = { id: string; name: string; email: string; role: Role; active: boolean; hasPassword: boolean; lastLoginAt: string | null };
 type AuditRow = { id: string; actorName: string; action: string; entityType: string; entityId: string | null; summary: string; reason: string | null; at: string };
@@ -26,7 +24,6 @@ const KIND_LABEL: Record<CategoryKind, string> = { conference: "Conferences", me
 
 export function SettingsPanel(props: {
   initialTab?: string;
-  victoriales: Victoriales[];
   appearance: Appearance;
   feed: { cancelledRetentionDays: number; refreshMinutes: number };
   rules: Rule[];
@@ -56,7 +53,7 @@ export function SettingsPanel(props: {
           { value: "audit", label: "Audit log" },
         ]}
       >
-        <TabPanel value="rules"><RulesTab {...props} /></TabPanel>
+        <TabPanel value="rules"><RulesTab rules={props.rules} layers={props.layers} affected={props.affected} /></TabPanel>
         <TabPanel value="appearance"><AppearanceTab appearance={props.appearance} /></TabPanel>
         <TabPanel value="categories"><CategoriesTab categories={props.categories} /></TabPanel>
         <TabPanel value="users"><UsersTab users={props.users} /></TabPanel>
@@ -69,13 +66,14 @@ export function SettingsPanel(props: {
 
 /* ------------------------------------------------------------------ rules */
 
-function RulesTab({ victoriales, rules, layers, affected }: { victoriales: Victoriales[]; rules: Rule[]; layers: { key: string; name: string }[]; affected: Affected[] }) {
+function RulesTab({ rules, layers, affected }: { rules: Rule[]; layers: { key: string; name: string }[]; affected: Affected[] }) {
   const { mutate, busy } = useMutate();
-  const [editions, setEditions] = useState(victoriales);
+  const builtin = rules.find((r) => r.builtin);
+  const saved = { daysBefore: builtin?.params.daysBefore ?? 21, midterms: (builtin?.params.kinds ?? []).includes("midterm"), active: builtin?.active ?? true };
+  const [exam, setExam] = useState(saved);
   const [newlyAffected, setNewlyAffected] = useState<Affected[] | null>(null);
   const [ruleForm, setRuleForm] = useState<{ id: string | null; form: RuleInput } | null>(null);
-  const dirty = JSON.stringify(editions) !== JSON.stringify(victoriales);
-  const builtin = rules.find((r) => r.builtin);
+  const dirty = JSON.stringify(exam) !== JSON.stringify(saved);
   const list = newlyAffected ?? affected;
 
   const blankRule: RuleInput = { name: "", type: "date_range", severity: "soft", appliesTo: ["conference"], startDate: null, endDate: null, kinds: [], layerKeys: [], message: "", active: true };
@@ -83,44 +81,21 @@ function RulesTab({ victoriales, rules, layers, affected }: { victoriales: Victo
   return (
     <div className="flex flex-col gap-10 pb-10">
       <section>
-        <h2 className="flex items-center gap-2 text-sm font-semibold"><ShieldAlert className="h-4 w-4 text-danger" /> Victoriales</h2>
+        <h2 className="flex items-center gap-2 text-sm font-semibold"><ShieldAlert className="h-4 w-4 text-danger" /> Before exams</h2>
         <p className="mb-4 mt-1 max-w-2xl text-[13px] text-ink-3">
-          No BFC conference may be scheduled during the 21 calendar days immediately before the Victoriales. Enter the date of the first day; the restricted period is calculated from it and updates everywhere when the date changes. Internal board meetings are not affected.
+          No BFC conference may be scheduled during the days immediately before an exam session. The restricted periods are calculated from the exam dates approved in <Link href="/board/academic" className="underline underline-offset-2">Academic calendars</Link>, for every program, and move by themselves if those dates change. Internal board meetings are not affected.
         </p>
-        <div className="flex flex-col gap-3">
-          {editions.map((ed, i) => {
-            const win = ed.date ? victorialesWindow(ed.date) : null;
-            const update = (patch: Partial<Victoriales>) => setEditions((list) => list.map((x, j) => (j === i ? { ...x, ...patch } : x)));
-            return (
-              <Card key={ed.id} className="overflow-hidden">
-                <div className="grid gap-3 p-4 sm:grid-cols-[1.4fr_1fr_1fr_auto] sm:items-end">
-                  <Field label="Edition"><Input value={ed.label} onChange={(e) => update({ label: e.target.value })} maxLength={60} /></Field>
-                  <Field label="First day"><Input type="date" value={ed.date ?? ""} onChange={(e) => update({ date: e.target.value || null, endDate: ed.endDate && e.target.value && ed.endDate < e.target.value ? null : ed.endDate })} /></Field>
-                  <Field label="Last day" optional><Input type="date" value={ed.endDate ?? ""} min={ed.date ?? undefined} onChange={(e) => update({ endDate: e.target.value || null })} /></Field>
-                  {editions.length > 1 && <Button variant="ghost" size="icon" aria-label={`Remove ${ed.label}`} onClick={() => setEditions((l) => l.filter((_, j) => j !== i))}><Trash2 className="h-4 w-4" /></Button>}
-                </div>
-                {win ? (
-                  <div className="hatch-danger flex flex-wrap items-center gap-x-2 border-t border-danger/20 px-4 py-2.5 text-[13px] font-medium text-danger">
-                    <ShieldAlert className="h-4 w-4" /> Restricted: {formatIsoRange(win.start, win.end)} <span className="font-normal">(21 days, ending the day before {formatIsoDay(ed.date!, true)})</span>
-                  </div>
-                ) : (
-                  <div className="border-t border-line bg-warn-soft px-4 py-2.5 text-[13px] text-ink-2">No date entered — no restriction can be computed for this edition.</div>
-                )}
-              </Card>
-            );
-          })}
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setEditions((l) => [...l, { id: crypto.randomUUID(), label: "Victoriales", date: null, endDate: null }])}><Plus className="h-3.5 w-3.5" /> Add another year</Button>
-          <span className="flex-1" />
-          {dirty && <Button variant="ghost" onClick={() => setEditions(victoriales)}>Discard</Button>}
-          <Button variant="primary" disabled={!dirty} loading={busy} onClick={() => mutate(() => saveVictorialesAction(editions), { success: "Victoriales saved — restricted period recalculated", onOk: (d) => setNewlyAffected(d.affected) })}>Save Victoriales date</Button>
-        </div>
-        {builtin && (
-          <div className="mt-3">
-            <Switch checked={builtin.active} onCheckedChange={(v) => mutate(() => toggleRuleAction(builtin.id, v), { success: v ? "Victoriales restriction enabled" : "Victoriales restriction disabled" })} label="Enforce the Victoriales restriction" description="Leave on. Turning it off removes the block for everyone and is recorded in the audit log." />
+        <Card className="flex flex-col gap-4 p-4">
+          <Field label="Days closed before each exam session" hint="Calendar days, ending the day before the first exam.">
+            <Input type="number" min={1} max={60} value={exam.daysBefore} onChange={(e) => setExam({ ...exam, daysBefore: Number(e.target.value) })} className="max-w-[120px]" />
+          </Field>
+          <Switch checked={exam.midterms} onCheckedChange={(v) => setExam({ ...exam, midterms: v })} label="Also apply before midterms" description="Off: only periods marked as exams (including retakes) count." />
+          <Switch checked={exam.active} onCheckedChange={(v) => setExam({ ...exam, active: v })} label="Enforce this rule" description="Leave on. Turning it off removes the block for everyone and is recorded in the audit log." />
+          <div className="flex items-center gap-2">
+            <Button variant="primary" disabled={!dirty} loading={busy} onClick={() => mutate(() => saveExamRuleAction(exam), { success: "Exam rule saved — restricted periods recalculated", onOk: (d) => setNewlyAffected(d.affected) })}>Save exam rule</Button>
+            {dirty && <Button variant="ghost" onClick={() => setExam(saved)}>Discard</Button>}
           </div>
-        )}
+        </Card>
         {list.length > 0 && (
           <Callout tone="danger" icon={<ShieldAlert />} className="mt-4" title={`${list.length} scheduled event${list.length > 1 ? "s" : ""} inside a restricted period`}>
             <ul className="mt-1 flex flex-col gap-0.5">
@@ -276,7 +251,7 @@ function AppearanceTab({ appearance }: { appearance: Appearance }) {
             <span className="inline-flex h-9 items-center justify-center rounded-lg bg-brand px-3 text-[13px] font-medium text-white">Primary button</span>
             <span className="inline-flex h-9 items-center justify-center rounded-lg bg-brand-deep px-3 text-[13px] font-medium text-white">Hover state</span>
             <div className="ev-chip" style={{ "--c": a.brand.primary } as React.CSSProperties}><span className="ev-time">18:30</span><span className="ev-title">Conference</span></div>
-            <span className="inline-flex h-6 items-center self-start rounded-full bg-brand-accent px-2 text-[11px] font-semibold text-white">★ Victoriales</span>
+            <span className="inline-flex h-6 items-center self-start rounded-full bg-brand-accent px-2 text-[11px] font-semibold text-white">Accent</span>
           </div>
         </div>
       </Group>

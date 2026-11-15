@@ -16,7 +16,7 @@
 
 ## Time
 
-- Every instant is stored as `timestamptz` (UTC). Calendar days without a time (task deadlines, academic periods, Victoriales) are stored as `date`.
+- Every instant is stored as `timestamptz` (UTC). Calendar days without a time (task deadlines, academic periods) are stored as `date`.
 - `src/lib/time.ts` is the only place that converts between Paris wall-clock time and instants (`parisToInstant`, `parisParts`), using `@date-fns/tz`, so daylight-saving transitions are handled once and tested (`tests/unit.test.ts`).
 - The browser never does time-zone maths. The server sends "wall" strings (`2027-03-28T18:30`, Paris time) and FullCalendar is run in its zone-less mode, so a board member travelling abroad still sees and edits Paris times.
 - Feeds emit timed events in UTC (`…Z`) — unambiguous for every client — and all-day events as `VALUE=DATE` with an exclusive end.
@@ -40,8 +40,8 @@ events ─┬─ event_proposals    candidate dates: active → confirmed | rele
 academic_layers ── academic_entries        verified periods (teaching, exam, midterm, reading, vacation, holiday…)
 academic_imports ── import_candidates      extracted periods awaiting review, with confidence, issues and source reference
 
-restriction_rules   victoriales (built in) | date_range | academic_kind · hard | soft · applies_to category kinds
-settings            victoriales editions, appearance, feed options (JSON, validated with zod on read and write)
+restriction_rules   academic_kind (built in: 21 days before exams) | date_range | victoriales · hard | soft · applies_to category kinds
+settings            appearance, feed options (JSON, validated with zod on read and write)
 templates           conference templates with relative task deadlines
 
 VIEW public_events  the only relation the public side reads (see Security)
@@ -69,15 +69,15 @@ Two fields on `events` matter for correctness:
 
 `src/lib/restrictions.ts` is pure. Rules are expanded into concrete date **windows**:
 
-- `victoriales` — for each configured edition with a date, the N (21) calendar days immediately before it: `[date − 21, date − 1]`. No date configured ⇒ no window (and the UI warns).
+- `academic_kind` — one window per **verified** academic entry of the chosen kinds/layers. With `daysBefore: N` the window is the N calendar days immediately before the entry (`[start − N, start − 1]`): this is the built-in rule **"no conference in the 21 days before exams"** (`kinds: ["exam"]`, optionally midterms). Without it the window is the period itself (used for the default soft warnings).
 - `date_range` — fixed dates.
-- `academic_kind` — one window per **verified** academic entry of the chosen kinds/layers.
+- `victoriales` — N days before a fixed key date stored in settings. Kept in the engine and tested, but no longer created by default nor exposed in the interface.
 
-Each window is `hard` or `soft` and applies to a set of category kinds (the Victoriales rule applies to `conference` only, so board meetings are exempt).
+Each window is `hard` or `soft` and applies to a set of category kinds (the exam rule applies to `conference` only, so board meetings are exempt).
 
 Enforcement happens in `events/service.ts` (`enforceRestrictions`) for every path that puts a conference on a date: create, update/move (drag & drop included), add a proposal, confirm a proposal. Hard violations throw `restricted` unless the actor is a Super Admin **and** supplied a reason (≥ 5 characters); the reason is stored on the event and written to the audit log as `restriction.override`.
 
-Windows are computed on read, so changing the Victoriales date immediately moves the restricted period everywhere. Events already scheduled inside the new window are not silently moved: they are flagged on the dashboard, in the calendar, on the event page and in the settings screen (`findRestrictedEvents`).
+Windows are computed on read, so approving or correcting exam dates immediately moves the restricted periods everywhere. Events already scheduled inside the new window are not silently moved: they are flagged on the dashboard, in the calendar, on the event page and in the settings screen (`findRestrictedEvents`).
 
 ## Scheduling assistant
 
@@ -125,7 +125,7 @@ Private feed security: 256-bit random token, only its SHA-256 stored, shown once
 | Publish / unpublish, archive, change status of public events | | | ✓ | ✓ |
 | Assign tasks to others, manage all speakers | | | ✓ | ✓ |
 | Import and approve academic calendars | | | ✓ | ✓ |
-| Users, roles, rules, Victoriales date, appearance, audit log | | | | ✓ |
+| Users, roles, rules, appearance, audit log | | | | ✓ |
 | Override a hard restriction (reason required, audited) | | | | ✓ |
 | Delete an event permanently | | | | ✓ |
 

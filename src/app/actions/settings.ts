@@ -13,35 +13,36 @@ import { AppError } from "@/lib/errors";
 import { findRestrictedEvents } from "@/lib/events/service";
 import { appUrl, revokeAllFeedTokens } from "@/lib/feeds";
 import { ROLE_LABEL } from "@/lib/permissions";
-import { feedSettingsSchema, readSetting, victorialesSchema, writeSetting } from "@/lib/settings";
-import { formatIsoDay, isValidDateIso } from "@/lib/time";
+import { feedSettingsSchema, writeSetting } from "@/lib/settings";
+import { isValidDateIso } from "@/lib/time";
 
 const id = z.string().uuid();
 const dateIso = z.string().refine(isValidDateIso, "Invalid date");
 const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 
-/* ------------------------------------------------------------ Victoriales */
+/* -------------------------------------------------------------- exam rule */
 
-export async function saveVictorialesAction(input: { id: string; label: string; date: string | null; endDate: string | null }[]) {
+/** The built-in rule: no conference in the N days before each approved exam session. */
+export async function saveExamRuleAction(input: { daysBefore: number; midterms: boolean; active: boolean }) {
   return run(async () => {
     const actor = await requireActor("super_admin");
-    const next = victorialesSchema.parse(input);
-    for (const ed of next) {
-      if (ed.date && !isValidDateIso(ed.date)) throw new AppError("invalid", "Enter a valid Victoriales date.");
-      if (ed.date && ed.endDate && ed.endDate < ed.date) throw new AppError("invalid", "The last day is before the first day.");
-    }
-    const before = await readSetting("victoriales");
-    await writeSetting("victoriales", next, actor.id);
-    const fmt = (list: typeof next) => list.map((e) => `${e.label}: ${e.date ? formatIsoDay(e.date, true) : "not set"}`).join("; ");
+    const data = z.object({ daysBefore: z.number().int().min(1).max(60), midterms: z.boolean(), active: z.boolean() }).parse(input);
+    const [rule] = await db.select().from(restrictionRules).where(eq(restrictionRules.builtin, true));
+    if (!rule) throw new AppError("not_found", "The built-in exam rule is missing. Redeploy to recreate it.");
+    const params = { kinds: data.midterms ? ["exam", "midterm"] : ["exam"], daysBefore: data.daysBefore };
+    await db
+      .update(restrictionRules)
+      .set({ type: "academic_kind", severity: "hard", name: `Exams — ${data.daysBefore} days before`, params, active: data.active, updatedAt: new Date() })
+      .where(eq(restrictionRules.id, rule.id));
     await audit({
       actor,
-      action: "settings.victoriales",
-      entityType: "settings",
-      entityId: "victoriales",
-      summary: "Changed the Victoriales date — the 21-day restricted period was recalculated",
-      changes: { victoriales: [fmt(before), fmt(next)] },
+      action: "settings.exam_rule",
+      entityType: "rule",
+      entityId: rule.id,
+      summary: `Exam rule: ${data.daysBefore} days before exams${data.midterms ? " and midterms" : ""}${data.active ? "" : " — DISABLED"}`,
+      changes: diff({ params: rule.params, active: rule.active } as Record<string, unknown>, { params, active: data.active }),
     });
-    // Tell the admin which already-scheduled conferences now sit inside the restricted period.
+    // Tell the admin which already-scheduled conferences now sit inside a restricted period.
     const affected = await findRestrictedEvents();
     return { affected: affected.map((a) => ({ id: a.event.id, title: a.event.title, overridden: !!a.event.overrideReason })) };
   });
@@ -80,7 +81,7 @@ export async function saveRuleAction(ruleId: string | null, input: RuleInput) {
     if (ruleId) {
       const [cur] = await db.select().from(restrictionRules).where(eq(restrictionRules.id, id.parse(ruleId)));
       if (!cur) throw new AppError("not_found", "This rule no longer exists.");
-      if (cur.builtin) throw new AppError("invalid", "The Victoriales rule is built in. Change the Victoriales date instead.");
+      if (cur.builtin) throw new AppError("invalid", "The exam rule is built in. Change it in the “Before exams” section.");
       await db.update(restrictionRules).set(values).where(eq(restrictionRules.id, cur.id));
       await audit({ actor, action: "rule.update", entityType: "rule", entityId: cur.id, summary: `Updated scheduling rule “${r.name}”`, changes: diff(cur as unknown as Record<string, unknown>, values, ["updatedAt"]) });
       return { id: cur.id };
@@ -106,7 +107,7 @@ export async function deleteRuleAction(ruleId: string) {
     const actor = await requireActor("super_admin");
     const [cur] = await db.select().from(restrictionRules).where(eq(restrictionRules.id, id.parse(ruleId)));
     if (!cur) return undefined;
-    if (cur.builtin) throw new AppError("invalid", "The Victoriales rule cannot be deleted.");
+    if (cur.builtin) throw new AppError("invalid", "The built-in exam rule cannot be deleted. You can switch it off instead.");
     await db.delete(restrictionRules).where(eq(restrictionRules.id, cur.id));
     await audit({ actor, action: "rule.delete", entityType: "rule", entityId: cur.id, summary: `Deleted scheduling rule “${cur.name}”` });
     return undefined;

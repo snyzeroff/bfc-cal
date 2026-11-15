@@ -242,7 +242,7 @@ function NewEventForm({
               </>
             )}
             {!isConference && mode !== "none" && kind === "meeting" && (
-              <p className="text-xs text-ink-3">Internal meetings are not subject to the Victoriales restriction.</p>
+              <p className="text-xs text-ink-3">Internal meetings are not subject to the 21-day rule before exams.</p>
             )}
           </div>
         </form>

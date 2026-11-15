@@ -25,8 +25,19 @@ export async function category(name: string) {
   return c;
 }
 
+/** The engine also supports "N days before a fixed key date"; these helpers exercise that path. */
 export async function setVictoriales(date: string | null) {
+  const [rule] = await db.select().from(s.restrictionRules).where(eq(s.restrictionRules.type, "victoriales"));
+  if (!rule) await db.insert(s.restrictionRules).values({ name: "Key date — 21 days before", type: "victoriales", severity: "hard", appliesTo: ["conference"], params: { daysBefore: 21 } });
   await writeSetting("victoriales", [{ id: "test", label: "Victoriales 2027", date, endDate: null }], null);
+}
+
+/** A verified academic period on a layer (created on demand). */
+export async function addAcademic(layerKey: string, label: string, kind: s.AcademicKind, startDate: string, endDate: string, verified = true) {
+  let [layer] = await db.select().from(s.academicLayers).where(eq(s.academicLayers.key, layerKey));
+  if (!layer) [layer] = await db.insert(s.academicLayers).values({ key: layerKey, name: layerKey.toUpperCase() }).returning();
+  const [entry] = await db.insert(s.academicEntries).values({ layerId: layer.id, label, kind, startDate, endDate, verified }).returning();
+  return entry;
 }
 
 export type ParsedEvent = { uid: string; summary: string; status: string; sequence: number; start: string; end: string; description: string; isDate: boolean };

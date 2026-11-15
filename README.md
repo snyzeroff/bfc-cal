@@ -2,7 +2,7 @@
 
 Conference planning and public events calendar for the **Bachelor Finance Club** (CentraleSupélec).
 
-- **Board workspace** (private): plan conferences from idea to publication, hold tentative dates while a speaker decides, track speakers and tasks, and see academic constraints and the Victoriales restriction on one calendar.
+- **Board workspace** (private): plan conferences from idea to publication, hold tentative dates while a speaker decides, track speakers and tasks, and see academic constraints and the "no conference before exams" rule on one calendar.
 - **Members calendar** (public): only events a Board Admin has explicitly published.
 - **Live subscriptions**: two real iCalendar feeds (public and per-user private) that calendar apps refresh by themselves.
 
@@ -24,12 +24,12 @@ npm run db:seed                   # reference data + first Super Admin (idempote
 npm run dev                       # http://localhost:3000
 ```
 
-`npm run db:demo` additionally creates sample people, speakers and events (never academic dates or a Victoriales date — those must come from an imported calendar and an administrator).
+`npm run db:demo` additionally creates sample people, speakers and events (never academic dates — those must come from an imported calendar).
 
 Sign in at `/login` with `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`, then:
 
-1. **Settings → Scheduling rules**: enter the Victoriales date. Until then the 21-day restriction cannot be enforced, and the app says so.
-2. **Academic → Import calendar**: upload the official year calendar PDF, review the extracted periods, approve them.
+1. **Academic → Import calendar**: upload the official year calendar PDF, review the extracted periods, approve them. The rule "no conference in the 21 days before exams" is computed from the approved exam dates; until some exist, the app says it cannot be enforced.
+2. **Settings → Scheduling rules**: adjust the rule if needed (number of days, include midterms) and add your own.
 3. **Settings → People & roles**: invite the rest of the board (you get a one-time link to send them).
 
 ## Scripts
@@ -72,7 +72,7 @@ scripts/                 migrate, seed, public-role
 src/db/schema.ts         database schema (single source of truth)
 src/lib/                 domain logic — pure where possible
   time.ts                Europe/Paris ↔ UTC, calendar-day arithmetic
-  restrictions.ts        restriction engine (Victoriales, date ranges, academic kinds)
+  restrictions.ts        restriction engine (days before exams, date ranges, academic kinds)
   scheduling.ts          scheduling assistant (pure)
   ics.ts                 RFC 5545 writer
   feeds.ts               public + private feed builders, token management

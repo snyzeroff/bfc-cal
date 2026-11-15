@@ -334,7 +334,8 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
   const openEvent = data.events.find((e) => e.id === openId) ?? null;
   const toggle = <T,>(list: T[], v: T) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
   const hardCount = data.windows.filter((w) => w.severity === "hard").length;
-  const victorialesMissing = data.victoriales.every((v) => !v.date);
+  // The 21-day rule is computed from approved exam dates: without them it cannot be enforced.
+  const examsMissing = !data.academic.some((a) => a.kind === "exam");
 
   return (
     <div className="flex flex-col gap-3">
@@ -415,7 +416,7 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
           <div className="flex max-h-[70dvh] flex-col gap-4 overflow-y-auto pr-1 scroll-thin">
             <div className="flex flex-col gap-2.5">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">Planning</p>
-              <Switch checked={show.restrictions} onCheckedChange={(v) => setShow((s) => ({ ...s, restrictions: v }))} label="Restricted periods" description={`Hard rules, incl. Victoriales (${hardCount} period${hardCount === 1 ? "" : "s"})`} />
+              <Switch checked={show.restrictions} onCheckedChange={(v) => setShow((s) => ({ ...s, restrictions: v }))} label="Restricted periods" description={`Hard rules, incl. the 21 days before exams (${hardCount} period${hardCount === 1 ? "" : "s"})`} />
               <Switch checked={show.soft} onCheckedChange={(v) => setShow((s) => ({ ...s, soft: v }))} label="Soft warnings" description="Periods that warn but do not block" />
               <Switch checked={show.proposals} onCheckedChange={(v) => setShow((s) => ({ ...s, proposals: v }))} label="Proposed dates" description="Tentative holds awaiting an answer" />
               <Switch checked={show.tasks} onCheckedChange={(v) => setShow((s) => ({ ...s, tasks: v }))} label="Task deadlines" />
@@ -457,13 +458,13 @@ export function BoardCalendar({ data }: { data: CalendarData }) {
         </Button>
       </div>
 
-      {victorialesMissing && (
+      {examsMissing && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-warn/30 bg-warn-soft px-3.5 py-2.5 text-[13px]">
           <ShieldAlert className="h-4 w-4 shrink-0 text-warn" />
           <span className="min-w-0 flex-1">
-            <strong className="font-medium">The Victoriales date is not set.</strong> The 21-day no-conference period cannot be enforced until a Super Admin enters it.
+            <strong className="font-medium">No exam dates are approved yet.</strong> The rule “no conference in the 21 days before exams” cannot be enforced until the academic calendars are imported and approved.
           </span>
-          {me.isSuperAdmin && <Button size="sm" variant="outline" onClick={() => router.push("/board/settings?tab=rules")}>Set the date</Button>}
+          {me.isAdmin && <Button size="sm" variant="outline" onClick={() => router.push("/board/academic")}>Import calendars</Button>}
         </div>
       )}
 

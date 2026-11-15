@@ -30,6 +30,16 @@ async function main() {
     console.log(res.createdAdmin ? `✓ Created Super Admin ${email}` : "✓ Reference data present (existing users untouched)");
   }
 
+  // One-off 2026–27 content (calendars from November, first conference). Never blocks a deploy.
+  if (!process.argv.includes("--demo") && !process.env.SKIP_BOOTSTRAP_2026) {
+    try {
+      const { runBootstrap2026 } = await import("../src/lib/bootstrap-2026");
+      await runBootstrap2026();
+    } catch (e) {
+      console.warn("! 2026–27 content could not be prepared:", e instanceof Error ? e.message : e);
+    }
+  }
+
   if (process.argv.includes("--demo")) {
     const existing = await db.select().from(s.events).limit(1);
     if (existing.length) {

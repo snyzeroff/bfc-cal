@@ -15,7 +15,7 @@ export default async function globalSetup() {
   const sql = postgres(url, { max: 1, onnotice: () => {} });
   await sql.unsafe("DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE; CREATE SCHEMA public;");
   await sql.end();
-  const env = { ...process.env, DATABASE_URL: url, SEED_ADMIN_EMAIL: USERS.superAdmin.email, SEED_ADMIN_PASSWORD: USERS.superAdmin.password, SEED_ADMIN_NAME: USERS.superAdmin.name };
+  const env = { ...process.env, DATABASE_URL: url, SEED_ADMIN_EMAIL: USERS.superAdmin.email, SEED_ADMIN_PASSWORD: USERS.superAdmin.password, SEED_ADMIN_NAME: USERS.superAdmin.name, SKIP_BOOTSTRAP_2026: "1" };
   execSync("npx tsx scripts/migrate.ts && npx tsx --conditions=react-server scripts/seed.ts", { env, stdio: "pipe" });
 
   const db = postgres(url, { max: 1, onnotice: () => {} });
