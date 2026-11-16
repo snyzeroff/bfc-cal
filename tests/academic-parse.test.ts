@@ -167,6 +167,31 @@ describe("structured imports", () => {
     expect(r.layers[0].key).toBe("school");
   });
 
+  it("places timed iCalendar events on the Paris day, treats a midnight end as exclusive and honours DURATION", () => {
+    const ev = (...lines: string[]) => ["BEGIN:VEVENT", ...lines, "END:VEVENT"];
+    const ics = [
+      "BEGIN:VCALENDAR",
+      // 23:00 UTC is already the next day in Paris.
+      ...ev("SUMMARY:Late session", "DTSTART:20270113T230000Z", "DTEND:20270114T010000Z"),
+      // Ends at midnight Paris time: two days, not three.
+      ...ev("SUMMARY:Forum", "DTSTART;TZID=Europe/Paris:20270210T090000", "DTEND;TZID=Europe/Paris:20270212T000000"),
+      ...ev("SUMMARY:Exams week", "DTSTART;VALUE=DATE:20270503", "DURATION:P1W"),
+      ...ev("SUMMARY:Workshop", "DTSTART;TZID=Europe/Paris:20270601T140000", "DURATION:PT3H"),
+      ...ev("SUMMARY:Exchange day", "DTSTART;TZID=America/New_York:20270615T090000", "DTEND;TZID=America/New_York:20270615T170000"),
+      "END:VCALENDAR",
+    ].join("\r\n");
+    const r = parseIcs(ics, "school.ics", "");
+    expect(r.candidates.map((c) => [c.label, c.startDate, c.endDate])).toEqual([
+      ["Late session", "2027-01-14", "2027-01-14"],
+      ["Forum", "2027-02-10", "2027-02-11"],
+      ["Exams week", "2027-05-03", "2027-05-09"],
+      ["Workshop", "2027-06-01", "2027-06-01"],
+      ["Exchange day", "2027-06-15", "2027-06-15"],
+    ]);
+    expect(r.candidates[4].issues.join(" ")).toMatch(/America\/New_York/);
+    expect(r.candidates[4].confidence).toBeLessThan(95);
+  });
+
   it("reads CSV with either separator and date format, and reports unreadable rows", () => {
     const r = parseCsv("label;start;end;kind\nMidterms;22/10/2026;23/10/2026;midterm\nBroken;not-a-date;;\n", "c.csv", "BoE Year 1");
     expect(r.candidates).toHaveLength(1);

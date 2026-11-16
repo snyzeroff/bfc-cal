@@ -39,7 +39,11 @@ export async function loadTasks(): Promise<BoardTask[]> {
 }
 
 /** Everything the board calendar, pipeline and dashboard need, in one round of queries. */
-export async function loadCalendarData(user: SessionUser, opts: { includeArchived?: boolean } = {}): Promise<CalendarData> {
+/** One load per request and variant, however many components ask (the session user is the same object throughout a request). */
+export const loadCalendarData = (user: SessionUser, opts: { includeArchived?: boolean } = {}) => calendarData(user, !!opts.includeArchived);
+
+const calendarData = cache(async (user: SessionUser, includeArchived: boolean): Promise<CalendarData> => {
+  const opts = { includeArchived };
   const [ctx, eventRows, orgRows, proposalRows, taskRows, layerRows, categoryRows, userRows, speakerRows, templateRows] = await Promise.all([
     loadPlanningContext(),
     db
@@ -144,7 +148,7 @@ export async function loadCalendarData(user: SessionUser, opts: { includeArchive
     templates: templateRows.map((t) => ({ id: t.id, name: t.name, categoryId: t.data.categoryId ?? null, startTime: t.data.startTime, durationMinutes: t.data.durationMinutes, taskCount: t.data.tasks.length })),
     today: todayParis(),
   };
-}
+});
 
 export async function countPendingCandidates(): Promise<number> {
   const [{ n }] = await db.execute<{ n: number }>(dsql`select count(*)::int as n from import_candidates where status = 'pending'`);
@@ -152,7 +156,8 @@ export async function countPendingCandidates(): Promise<number> {
 }
 
 
-export async function loadEventDetail(user: SessionUser, id: string): Promise<EventDetail | null> {
+/** Cached per request: the page and its metadata both need it. */
+export const loadEventDetail = cache(async (user: SessionUser, id: string): Promise<EventDetail | null> => {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
   const data = await loadCalendarData(user, { includeArchived: true });
   const base = data.events.find((e) => e.id === id);
@@ -206,4 +211,4 @@ export async function loadEventDetail(user: SessionUser, id: string): Promise<Ev
     attachments: attachmentRows.map(({ a, name }) => ({ id: a.id, name: a.name, url: a.url, addedByName: name })),
     history: history.map((h) => ({ id: h.id, action: h.action, summary: h.summary, actorName: h.actorName, at: h.at.toISOString(), reason: h.reason, changes: h.changes })),
   };
-}
+});

@@ -293,6 +293,8 @@ export const tasks = pgTable(
     title: text("title").notNull(),
     notes: text("notes").notNull().default(""),
     dueDate: date("due_date"),
+    /** Template tasks: days from the event date. Lets the deadline be set once the event gets a date. */
+    offsetDays: integer("offset_days"),
     assigneeId: uuid("assignee_id").references(() => users.id, { onDelete: "set null" }),
     doneAt: timestamp("done_at", { withTimezone: true }),
     doneBy: uuid("done_by").references(() => users.id, { onDelete: "set null" }),

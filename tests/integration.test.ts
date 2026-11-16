@@ -504,6 +504,23 @@ describe("concurrent editing and permissions", () => {
     expect(await code(confirmProposal(admin, p.id))).toBe("ok");
   });
 
+  it("template tasks get their deadline when the event gets its date, without touching ones set by hand", async () => {
+    const [template] = await db.select().from(s.templates);
+    const { event } = await createEvent(member, { title: "From a template", categoryId: conf.id, templateId: template.id });
+    const before = await db.select().from(s.tasks).where(eq(s.tasks.eventId, event.id));
+    expect(before.length).toBeGreaterThan(3);
+    expect(before.every((t) => t.dueDate === null && t.offsetDays !== null)).toBe(true);
+    const manual = before.find((t) => t.offsetDays === -28)!;
+    await db.update(s.tasks).set({ dueDate: "2027-01-05" }).where(eq(s.tasks.id, manual.id));
+
+    const { proposal } = await addProposal(member, event.id, { startAt: at("2027-03-10", "18:00"), endAt: at("2027-03-10", "19:30") });
+    await confirmProposal(member, proposal.id);
+    const after = await db.select().from(s.tasks).where(eq(s.tasks.eventId, event.id));
+    expect(after.find((t) => t.offsetDays === -35)!.dueDate).toBe("2027-02-03");
+    expect(after.find((t) => t.offsetDays === 1)!.dueDate).toBe("2027-03-11");
+    expect(after.find((t) => t.id === manual.id)!.dueDate).toBe("2027-01-05");
+  });
+
   it("every change leaves a trace in the event history", async () => {
     const ev = await confirmed();
     await updateEvent(admin, ev.id, { location: "Room Z" });
@@ -521,6 +538,13 @@ describe("academic imports must be reviewed", () => {
     expect(res.count).toBe(2);
     expect(await db.select().from(s.academicEntries)).toHaveLength(0);
     expect((await loadPlanningContext()).academic).toHaveLength(0);
+  });
+
+  it("the same file cannot be imported twice by mistake", async () => {
+    await importCalendar(admin, "calendar.csv", new TextEncoder().encode(csv));
+    expect(await code(importCalendar(admin, "copy-of-calendar.csv", new TextEncoder().encode(csv)))).toBe("invalid");
+    expect(await db.select().from(s.academicImports)).toHaveLength(1);
+    expect(await code(importCalendar(admin, "other.csv", new TextEncoder().encode(csv + "Exams,2027-01-13,2027-01-15,exam,BoE Year 1\n")))).toBe("ok");
   });
 
   it("an ambiguous date is flagged with low confidence and stays unverified until a human approves it", async () => {

@@ -50,6 +50,13 @@
       "when": 1794765320034,
       "tag": "0006_signup_links",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794813888560,
+      "tag": "0007_task_offset",
+      "breakpoints": true
     }
   ]
 }

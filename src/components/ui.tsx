@@ -448,10 +448,15 @@ export function Menu({
   trigger,
   children,
   align = "end",
+  side,
+  fitTrigger,
 }: {
   trigger: React.ReactNode;
   children: React.ReactNode;
   align?: "start" | "end" | "center";
+  side?: "top" | "bottom";
+  /** Make the menu at least as wide as the control that opens it. */
+  fitTrigger?: boolean;
 }) {
   return (
     <RMenu.Root>
@@ -459,8 +464,10 @@ export function Menu({
       <RMenu.Portal>
         <RMenu.Content
           align={align}
+          side={side}
           sideOffset={6}
-          className="menu-pop z-[60] min-w-[190px] rounded-xl border border-line bg-surface p-1 shadow-lg"
+          collisionPadding={8}
+          className={cn("menu-pop z-[60] min-w-[190px] rounded-xl border border-line bg-surface p-1 shadow-lg", fitTrigger && "min-w-[var(--radix-dropdown-menu-trigger-width)]")}
         >
           {children}
         </RMenu.Content>

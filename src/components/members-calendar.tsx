@@ -27,8 +27,10 @@ export function MembersCalendar({ events, defaultView, weekStartsOn, today }: { 
 
   const categories = useMemo(() => [...new Map(events.map((e) => [e.category.name, e.category])).values()], [events]);
   const filtered = useMemo(() => events.filter((e) => !category || e.category.name === category), [events, category]);
-  const upcoming = filtered.filter((e) => parisDay(new Date(e.end)) >= today);
-  const past = filtered.filter((e) => parisDay(new Date(e.end)) < today).reverse();
+  // The end is exclusive: an event ending at midnight belongs to the day before.
+  const lastDay = (e: PublicEventJson) => parisDay(new Date(Date.parse(e.end) - 1));
+  const upcoming = filtered.filter((e) => lastDay(e) >= today);
+  const past = filtered.filter((e) => lastDay(e) < today).reverse();
 
   const groups = useMemo(() => {
     const m = new Map<string, PublicEventJson[]>();

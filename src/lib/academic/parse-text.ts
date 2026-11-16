@@ -1,5 +1,5 @@
 import { ACADEMIC_KINDS, type AcademicKind } from "@/db/schema";
-import { addDays, isValidDateIso } from "@/lib/time";
+import { addDays, isValidDateIso, parisParts } from "@/lib/time";
 import { classifyLabel } from "./classify";
 import type { ParsedCalendar, ParsedCandidate } from "./types";
 
@@ -18,21 +18,46 @@ export function parseIcs(text: string, filename: string, layerName: string): Par
   const blocks = unfolded.split("BEGIN:VEVENT").slice(1);
   blocks.forEach((raw, i) => {
     const block = raw.split("END:VEVENT")[0];
-    const prop = (n: string) => new RegExp(`^${n}(?:;[^:\\n]*)?:(.*)$`, "m").exec(block)?.[1]?.trim();
-    const summary = (prop("SUMMARY") ?? "").replace(/\\([,;\\])/g, "$1").replace(/\\n/gi, " ");
-    const ds = prop("DTSTART");
-    const de = prop("DTEND");
-    const toDay = (v?: string) => (v && /^\d{8}/.test(v) ? `${v.slice(0, 4)}-${v.slice(4, 6)}-${v.slice(6, 8)}` : null);
-    const start = toDay(ds);
+    const full = (n: string) => {
+      const m = new RegExp(`^${n}((?:;[^:\\n]*)?):(.*)$`, "m").exec(block);
+      return m ? { params: m[1], value: m[2].trim() } : null;
+    };
+    const summary = (full("SUMMARY")?.value ?? "").replace(/\\([,;\\])/g, "$1").replace(/\\n/gi, " ");
+    const issues: string[] = [];
+    /** The Paris day (and whether it is exactly midnight) of a DATE or DATE-TIME value. */
+    const read = (p: { params: string; value: string } | null): { day: string; timed: boolean; midnight: boolean } | null => {
+      const m = p && /^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})?(Z)?)?/.exec(p.value);
+      if (!p || !m) return null;
+      const written = `${m[1]}-${m[2]}-${m[3]}`;
+      if (m[4] === undefined) return { day: written, timed: false, midnight: false };
+      if (m[7]) {
+        // UTC time: the school day is the day in Paris, which can differ late in the evening.
+        const at = parisParts(new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5])));
+        return { day: at.date, timed: true, midnight: at.time === "00:00" };
+      }
+      const zone = /TZID=([^;:]+)/.exec(p.params)?.[1];
+      if (zone && zone !== "Europe/Paris") issues.push(`Times are in ${zone}; the day was taken as written.`);
+      return { day: written, timed: true, midnight: m[4] === "00" && m[5] === "00" };
+    };
+    const ds = read(full("DTSTART"));
+    const start = ds?.day ?? null;
     if (!summary || !start || !isValidDateIso(start)) {
       warnings.push(`Event ${i + 1} skipped: missing title or start date.`);
       return;
     }
-    const isDate = !!ds && !ds.includes("T");
-    let end = toDay(de) ?? start;
-    // All-day DTEND is exclusive in iCalendar.
-    if (isDate && de && end > start) end = addDays(end, -1);
-    const issues: string[] = [];
+    const de = read(full("DTEND"));
+    let end = start;
+    if (de) {
+      // An end at midnight (and every all-day end) is exclusive: the event stops the day before.
+      end = (!de.timed || de.midnight) && de.day > start ? addDays(de.day, -1) : de.day;
+    } else {
+      const dur = /^P(?:(\d+)W)?(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:\d+S)?)?$/.exec(full("DURATION")?.value ?? "");
+      if (dur) {
+        const days = +(dur[1] ?? 0) * 7 + +(dur[2] ?? 0);
+        const extra = +(dur[3] ?? 0) * 60 + +(dur[4] ?? 0) > 0 ? 1 : 0;
+        end = addDays(start, Math.max(0, days + extra - 1));
+      }
+    }
     if (!isValidDateIso(end) || end < start) {
       end = start;
       issues.push("End date could not be read; assumed a single day.");

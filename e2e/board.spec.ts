@@ -289,15 +289,31 @@ test("tasks: an admin assigns a task from the list without losing its deadline",
   await expect(again.getByText(/^Due /)).toBeVisible(); // reassigning used to wipe the deadline
 });
 
-test("profile: clicking your name opens your profile, where you can rename yourself", async ({ page }) => {
+test("account menu: clicking your name unfolds a menu that leads to your profile, where you can rename yourself", async ({ page }) => {
+  // A Super Admin also finds the settings there.
+  await login(page, "superAdmin");
+  await page.getByRole("button", { name: /^Account/ }).click();
+  await expect(page.getByRole("menuitem", { name: "My profile" })).toBeVisible();
+  await expect(page.getByRole("menuitem", { name: "Sign out" })).toBeVisible();
+  await page.getByRole("menuitem", { name: "Settings" }).click();
+  await expect(page).toHaveURL(/\/board\/settings$/);
+  await logout(page);
+
   await login(page, "member");
-  await page.getByRole("link", { name: /My profile/ }).click();
+  await page.getByRole("button", { name: /^Account/ }).click();
+  await expect(page.getByRole("menuitem", { name: "Settings" })).toHaveCount(0);
+  await page.getByRole("menuitem", { name: "Dark" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+  await page.getByRole("button", { name: /^Account/ }).click();
+  await page.getByRole("menuitem", { name: "System" }).click();
+  await page.getByRole("button", { name: /^Account/ }).click();
+  await page.getByRole("menuitem", { name: "My profile" }).click();
   await expect(page).toHaveURL(/\/board\/profile$/);
   const name = page.getByRole("form", { name: "Display name" });
   await name.getByLabel("Display name").fill("Max Member-Renamed");
   await name.getByRole("button", { name: "Save" }).click();
   await expect(page.getByText("Name saved")).toBeVisible();
-  await expect(page.getByRole("link", { name: /My profile/ })).toContainText("Max Member-Renamed");
+  await expect(page.getByRole("button", { name: /^Account/ })).toContainText("Max Member-Renamed");
   // Wrong current password: nothing changes.
   const pw = page.getByRole("form", { name: "Change password" });
   await pw.getByLabel("Current password").fill("not-my-password");

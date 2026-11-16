@@ -24,7 +24,8 @@ function choose(pref: Pref) {
   listeners.forEach((fn) => fn());
 }
 
-export function ThemeToggle({ className }: { className?: string }) {
+/** The stored preference, kept in sync with the system setting while it is "system". */
+function useThemePref(): Pref {
   // The preference lives in a cookie; the server render assumes "system".
   const pref = useSyncExternalStore(subscribe, readPref, () => "system" as Pref);
 
@@ -34,7 +35,23 @@ export function ThemeToggle({ className }: { className?: string }) {
     mq.addEventListener("change", onChange);
     return () => mq.removeEventListener("change", onChange);
   }, []);
+  return pref;
+}
 
+/** The three theme choices, for use inside any menu. */
+export function ThemeMenuItems() {
+  const pref = useThemePref();
+  return (
+    <>
+      <MenuItem icon={<Sun />} onSelect={() => choose("light")} checked={pref === "light"}>Light</MenuItem>
+      <MenuItem icon={<Moon />} onSelect={() => choose("dark")} checked={pref === "dark"}>Dark</MenuItem>
+      <MenuItem icon={<Monitor />} onSelect={() => choose("system")} checked={pref === "system"}>System</MenuItem>
+    </>
+  );
+}
+
+export function ThemeToggle({ className }: { className?: string }) {
+  const pref = useThemePref();
   const Icon = pref === "dark" ? Moon : pref === "light" ? Sun : Monitor;
   return (
     <Menu
@@ -44,9 +61,7 @@ export function ThemeToggle({ className }: { className?: string }) {
         </button>
       }
     >
-      <MenuItem icon={<Sun />} onSelect={() => choose("light")} checked={pref === "light"}>Light</MenuItem>
-      <MenuItem icon={<Moon />} onSelect={() => choose("dark")} checked={pref === "dark"}>Dark</MenuItem>
-      <MenuItem icon={<Monitor />} onSelect={() => choose("system")} checked={pref === "system"}>System</MenuItem>
+      <ThemeMenuItems />
     </Menu>
   );
 }

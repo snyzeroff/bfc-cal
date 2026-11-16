@@ -45,7 +45,7 @@ If exam dates are corrected or added later, the periods move automatically and a
 
 ## Your profile
 
-Click your name (bottom-left, or the avatar on a phone) to open **My profile**: change your display name, your email or your password, and sign out of your other devices.
+Click your name (bottom-left, or the avatar on a phone) to open the account menu: **My profile**, **Settings** (Super Admin), **Subscriptions**, the theme, and **Sign out**. In **My profile** you change your display name, your email or your password, and sign out of your other devices.
 
 ## Inviting people (Super Admin)
 

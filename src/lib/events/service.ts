@@ -227,6 +227,7 @@ export async function createEvent(actor: ActorUser, input: CreateInput, opts: Mu
           eventId: row.id,
           title: t.title,
           dueDate: anchor ? addDays(anchor, t.offsetDays) : null,
+          offsetDays: t.offsetDays,
           sortOrder: i,
           createdBy: actor.id,
         })),
@@ -242,6 +243,18 @@ export async function createEvent(actor: ActorUser, input: CreateInput, opts: Mu
     return row;
   });
   return { event, warnings };
+}
+
+/**
+ * Template tasks created before the event had a date get their deadline as soon as it has one.
+ * Deadlines already set (by hand or by an earlier date) are left alone.
+ */
+async function fillTemplateDeadlines(tx: Tx, eventId: string, startAt: Date) {
+  const anchor = parisParts(startAt).date;
+  await tx
+    .update(tasks)
+    .set({ dueDate: dsql`(${anchor}::date + ${tasks.offsetDays})`, updatedAt: new Date() })
+    .where(and(eq(tasks.eventId, eventId), isNull(tasks.dueDate), isNull(tasks.doneAt), dsql`${tasks.offsetDays} is not null`));
 }
 
 /* ------------------------------------------------------------------ update */
@@ -337,6 +350,7 @@ export async function updateEvent(
       .where(and(eq(events.id, id), eq(events.version, ev.version)))
       .returning();
     if (!row) throw await conflictError(ev);
+    if (row.startAt && !ev.startAt) await fillTemplateDeadlines(tx, id, row.startAt);
     if (organizerIds) {
       const before = [...current.organizerIds].sort().join(",");
       const after = [...new Set(organizerIds)].sort().join(",");
@@ -566,6 +580,7 @@ export async function confirmProposal(actor: ActorUser, proposalId: string, opts
       .where(and(eq(events.id, ev.id), eq(events.version, ev.version)))
       .returning();
     if (!row) throw await conflictError(ev);
+    await fillTemplateDeadlines(tx, ev.id, p.startAt);
     await audit(
       {
         actor,

@@ -6,7 +6,7 @@ import { academicEntries, academicImports, academicLayers, importCandidates, typ
 import { audit } from "@/lib/audit";
 import { AppError } from "@/lib/errors";
 import { canManageAcademic, type Actor } from "@/lib/permissions";
-import { isValidDateIso } from "@/lib/time";
+import { formatDayYear, isValidDateIso } from "@/lib/time";
 import { parseCsv, parseIcs } from "./parse-text";
 import type { ParsedCalendar } from "./types";
 
@@ -47,6 +47,10 @@ export async function importCalendar(actor: ActorUser, filename: string, bytes: 
     throw new AppError("invalid", parsed.warnings[0] ?? "No dates could be extracted from this file. You can add periods manually instead.");
   }
   const sha256 = createHash("sha256").update(bytes).digest("hex");
+  const [same] = await db.select({ filename: academicImports.filename, at: academicImports.createdAt }).from(academicImports).where(eq(academicImports.sha256, sha256)).limit(1);
+  if (same) {
+    throw new AppError("invalid", `This exact file was already imported (“${same.filename}”, ${formatDayYear(same.at)}). Delete that import first to load it again.`);
+  }
   return db.transaction(async (tx) => {
     const [imp] = await tx
       .insert(academicImports)

@@ -613,7 +613,12 @@ function DayPanel({
   onNew: () => void;
 }) {
   const { mutate } = useMutate();
-  const dayEvents = events.filter((e) => e.start && e.start.slice(0, 10) <= day && (e.end ?? e.start).slice(0, 10) >= day);
+  // The end is exclusive: an event ending at midnight (every all-day event) stops the day before.
+  const lastDay = (start: string, end: string | null) => {
+    const e = end ?? start;
+    return e.slice(11, 16) === "00:00" && e.slice(0, 10) > start.slice(0, 10) ? addDays(e.slice(0, 10), -1) : e.slice(0, 10);
+  };
+  const dayEvents = events.filter((e) => e.start && e.start.slice(0, 10) <= day && lastDay(e.start, e.end) >= day);
   const dayProps = proposals.filter((p) => p.start.slice(0, 10) === day);
   const dayTasks = data.tasks.filter((t) => t.dueDate === day && !t.done);
   const dayAcademic = academic.filter((a) => a.start <= day && a.end >= day);

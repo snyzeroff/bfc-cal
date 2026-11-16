@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
-import { CalendarDays, CheckSquare, ExternalLink, GraduationCap, LayoutDashboard, LogOut, Mic2, MoreHorizontal, Rss, Settings, Ticket, UserRound } from "lucide-react";
+import { CalendarDays, CheckSquare, ChevronsUpDown, ExternalLink, GraduationCap, LayoutDashboard, LogOut, Mic2, MoreHorizontal, Rss, Settings, Ticket, UserRound } from "lucide-react";
 import { logoutAction } from "@/app/actions/auth";
 import { Logo } from "@/components/logo";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { ThemeMenuItems } from "@/components/theme-toggle";
 import { Avatar, Menu, MenuItem, MenuLabel, MenuSeparator } from "@/components/ui";
 import type { Me } from "@/lib/board-types";
 import { cn } from "@/lib/cn";
@@ -42,6 +42,8 @@ export function BoardShell({
   const params = useSearchParams();
   const active = (href: string, exact?: boolean) => (exact ? pathname === href : pathname.startsWith(href));
   const onProfile = active(PROFILE_HREF);
+  const onSettings = active("/board/settings");
+  const onAccount = onProfile;
 
   useEffect(() => {
     if (params.get("denied")) {
@@ -69,6 +71,21 @@ export function BoardShell({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [router]);
+
+  // One account menu, opened from the name (desktop) or the avatar (phone).
+  const account = (
+    <>
+      <p className="max-w-[240px] truncate px-2.5 pb-1 pt-1.5 text-xs text-ink-3">{me.email}</p>
+      <MenuItem icon={<UserRound />} checked={onProfile} onSelect={() => router.push(PROFILE_HREF)}>My profile</MenuItem>
+      {me.isSuperAdmin && <MenuItem icon={<Settings />} checked={onSettings} onSelect={() => router.push("/board/settings")}>Settings</MenuItem>}
+      <MenuItem icon={<Rss />} onSelect={() => router.push("/board/subscriptions")}>Subscriptions</MenuItem>
+      <MenuSeparator />
+      <MenuLabel>Theme</MenuLabel>
+      <ThemeMenuItems />
+      <MenuSeparator />
+      <MenuItem icon={<LogOut />} danger onSelect={() => logoutAction()}>Sign out</MenuItem>
+    </>
+  );
 
   const more = [
     { href: "/board/subscriptions", label: "Subscriptions", icon: Rss },
@@ -105,28 +122,27 @@ export function BoardShell({
             Members calendar
           </NavLink>
         </nav>
-        <div className="mt-auto flex items-center gap-1 rounded-xl border border-line bg-surface p-1">
-          <Link
-            href={PROFILE_HREF}
-            aria-current={onProfile ? "page" : undefined}
-            title="My profile"
-            className={cn("flex min-w-0 flex-1 items-center gap-2 rounded-lg p-1 transition-colors hover:bg-surface-2", onProfile && "bg-surface-2")}
+        <div className="mt-auto">
+          <Menu
+            side="top"
+            align="start"
+            fitTrigger
+            trigger={
+              <button className={cn("flex w-full items-center gap-2 rounded-xl border border-line bg-surface p-1.5 text-left transition-colors hover:bg-surface-2 data-[state=open]:bg-surface-2", onAccount && "bg-surface-2")}>
+                <span aria-hidden className="flex shrink-0">
+                  <Avatar name={me.name} size={30} />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="sr-only">Account: </span>
+                  <span className="block truncate text-[13px] font-medium leading-tight">{me.name}</span>
+                  <span className="block truncate text-[11px] leading-tight text-ink-3">{ROLE_LABEL[me.role]}</span>
+                </span>
+                <ChevronsUpDown className="mr-1 h-3.5 w-3.5 shrink-0 text-ink-3" aria-hidden />
+              </button>
+            }
           >
-            <span aria-hidden className="flex shrink-0">
-              <Avatar name={me.name} size={30} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="sr-only">My profile: </span>
-              <span className="block truncate text-[13px] font-medium leading-tight">{me.name}</span>
-              <span className="block truncate text-[11px] leading-tight text-ink-3">{ROLE_LABEL[me.role]}</span>
-            </span>
-          </Link>
-          <ThemeToggle />
-          <form action={logoutAction}>
-            <button aria-label="Sign out" title="Sign out" className="grid h-8 w-8 place-items-center rounded-lg text-ink-3 hover:bg-surface-2 hover:text-ink">
-              <LogOut className="h-4 w-4" />
-            </button>
-          </form>
+            {account}
+          </Menu>
         </div>
       </aside>
 
@@ -135,13 +151,8 @@ export function BoardShell({
         <header className="material sticky top-0 z-30 flex h-12 items-center gap-2 px-4 lg:hidden">
           <Logo shortName={shortName} size={24} />
           <span className="flex-1 truncate text-[13px] font-semibold">{orgName}</span>
-          <ThemeToggle />
-          <Menu trigger={<button aria-label="Account" className={cn("rounded-full", onProfile && "ring-2 ring-brand-ink")}><Avatar name={me.name} size={28} /></button>}>
-            <MenuLabel>{me.name} · {ROLE_LABEL[me.role]}</MenuLabel>
-            <MenuItem icon={<UserRound />} checked={onProfile} onSelect={() => router.push(PROFILE_HREF)}>My profile</MenuItem>
-            <MenuItem icon={<ExternalLink />} onSelect={() => router.push("/")}>Members calendar</MenuItem>
-            <MenuSeparator />
-            <MenuItem icon={<LogOut />} onSelect={() => logoutAction()}>Sign out</MenuItem>
+          <Menu trigger={<button aria-label="Account" className={cn("rounded-full", onAccount && "ring-2 ring-brand-ink")}><Avatar name={me.name} size={28} /></button>}>
+            {account}
           </Menu>
         </header>
 
